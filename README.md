@@ -4,34 +4,34 @@ Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit Rea
 
 ## Neueste Verbesserungen
 
-✅ **Kompaktes Kartendeck** - Reduziert auf 1, 2, 3, 5, 8, 13 für schnellere Entscheidungen
-✅ **Dezente Kartenauswahl** - Gewählte Karte mit sanftem blauen Hintergrund
-✅ **Persistente Hervorhebung** - Ausgewählte Karte bleibt dauerhaft dezent hervorgehoben
-✅ **Verdeckte Karten** - Gewählte Karten werden in der Spielerliste als verschlossene Karte angezeigt
-✅ **Flip-Animationen** - Sanfte Animationen beim Aufdecken der Karten
-✅ **Keine Namensduplikate** - Server-seitige Validierung verhindert doppelte Spielernamen im Raum
-✅ **Beobachter-Modus** - Spieler können als Beobachter teilnehmen ohne bei der Abstimmung mitzuzählen
-✅ **Konfetti bei Konsens** - Feier-Animation wenn alle Spieler die gleiche Karte wählen
-✅ **Shareable Links** - URLs mit Raum-Code können direkt geteilt werden
-✅ **Copy Link Button** - Ein-Klick zum Kopieren des Raum-Links
+✅ **Kompaktes Kartendeck** - Reduziert auf 1, 2, 3, 5, 8, 13 für schnellere Entscheidungen<br>
+✅ **Dezente Kartenauswahl** - Gewählte Karte mit sanftem blauen Hintergrund<br>
+✅ **Persistente Hervorhebung** - Ausgewählte Karte bleibt dauerhaft dezent hervorgehoben<br>
+✅ **Verdeckte Karten** - Gewählte Karten werden in der Spielerliste als verschlossene Karte angezeigt<br>
+✅ **Flip-Animationen** - Sanfte Animationen beim Aufdecken der Karten<br>
+✅ **Keine Namensduplikate** - Server-seitige Validierung verhindert doppelte Spielernamen im Raum<br>
+✅ **Beobachter-Modus** - Spieler können als Beobachter teilnehmen ohne bei der Abstimmung mitzuzählen<br>
+✅ **Konfetti bei Konsens** - Feier-Animation wenn alle Spieler die gleiche Karte wählen<br>
+✅ **Shareable Links** - URLs mit Raum-Code können direkt geteilt werden<br>
+✅ **Copy Link Button** - Ein-Klick zum Kopieren des Raum-Links<br>
 
 ## Features
 
-✨ **Echtzeit-Synchronisation** - Alle Spieler sehen Live-Updates dank Socket.io
-🎯 **Intuitive Benutzeroberfläche** - Responsive Design für Desktop und Mobile
-🎴 **Kompaktes Kartendeck** - Werte: 1, 2, 3, 5, 8, 13 (Fibonacci-basiert)
-🌟 **Dezente Hervorhebung** - Gewählte Karte mit sanftem blauen Hintergrund und Ring
-🔒 **Verdeckte Karten** - Gewählte Karten werden als verschlossene Karte angezeigt
-🎬 **Sanfte Animationen** - Flip-Animation beim Aufdecken der Karten
-👥 **Unbegrenzte Spieler** - Erstelle Räume und lade dein Team ein
-👁️ **Beobachter-Modus** - Beobachte ohne an der Abstimmung teilzunehmen
-🚫 **Keine doppelten Namen** - Server-seitige Validierung verhindert Namensduplikate
-🔒 **Moderator-Kontrolle** - Raum-Ersteller kann Karten aufdecken und neue Runden starten
-📊 **Automatische Durchschnittsberechnung** - Sofortige Auswertung nach dem Aufdecken
-🎉 **Konfetti bei Konsens** - Feier-Animation wenn alle sich einig sind
-🔗 **Shareable Links** - Direkte Raum-Links mit URL-Parametern
-📋 **Copy Link** - Ein-Klick Link-Kopieren für einfaches Teilen
-🎨 **Modernes UI** - Erstellt mit Tailwind CSS
+✨ **Echtzeit-Synchronisation** - Alle Spieler sehen Live-Updates dank Socket.io<br>
+🎯 **Intuitive Benutzeroberfläche** - Responsive Design für Desktop und Mobile<br>
+🎴 **Kompaktes Kartendeck** - Werte: 1, 2, 3, 5, 8, 13 (Fibonacci-basiert)<br>
+🌟 **Dezente Hervorhebung** - Gewählte Karte mit sanftem blauen Hintergrund und Ring<br>
+🔒 **Verdeckte Karten** - Gewählte Karten werden als verschlossene Karte angezeigt<br>
+🎬 **Sanfte Animationen** - Flip-Animation beim Aufdecken der Karten<br>
+👥 **Unbegrenzte Spieler** - Erstelle Räume und lade dein Team ein<br>
+👁️ **Beobachter-Modus** - Beobachte ohne an der Abstimmung teilzunehmen<br>
+🚫 **Keine doppelten Namen** - Server-seitige Validierung verhindert Namensduplikate<br>
+🔒 **Moderator-Kontrolle** - Raum-Ersteller kann Karten aufdecken und neue Runden starten<br>
+📊 **Automatische Durchschnittsberechnung** - Sofortige Auswertung nach dem Aufdecken<br>
+🎉 **Konfetti bei Konsens** - Feier-Animation wenn alle sich einig sind<br>
+🔗 **Shareable Links** - Direkte Raum-Links mit URL-Parametern<br>
+📋 **Copy Link** - Ein-Klick Link-Kopieren für einfaches Teilen<br>
+🎨 **Modernes UI** - Erstellt mit Tailwind CSS<br>
 
 ## Technologie-Stack
 
