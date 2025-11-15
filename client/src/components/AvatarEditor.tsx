@@ -11,14 +11,14 @@ const AvatarEditor = ({ imageUrl, onSave, onCancel }: AvatarEditorProps) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
-      imageRef.current = img;
+      setLoadedImage(img);
       // Center the image initially
       if (containerRef.current) {
         const containerSize = 300;
@@ -36,18 +36,19 @@ const AvatarEditor = ({ imageUrl, onSave, onCancel }: AvatarEditorProps) => {
         setScale(initialScale);
         setPosition({ x: 0, y: 0 });
       }
-      drawImage();
     };
     img.src = imageUrl;
   }, [imageUrl]);
 
   useEffect(() => {
-    drawImage();
-  }, [scale, position]);
+    if (loadedImage) {
+      drawImage();
+    }
+  }, [scale, position, loadedImage]);
 
   const drawImage = () => {
     const canvas = canvasRef.current;
-    const img = imageRef.current;
+    const img = loadedImage;
     if (!canvas || !img) return;
 
     const ctx = canvas.getContext('2d');
@@ -115,7 +116,7 @@ const AvatarEditor = ({ imageUrl, onSave, onCancel }: AvatarEditorProps) => {
     if (!finalCtx) return;
 
     // Draw the cropped image
-    const img = imageRef.current;
+    const img = loadedImage;
     if (!img) return;
 
     const scaledWidth = img.width * scale;

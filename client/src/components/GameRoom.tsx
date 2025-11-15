@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { RoomState, CardValue } from '../types';
-import PlayerList from './PlayerList';
+import PokerTable from './PokerTable';
 import CardDeck from './CardDeck';
-import Results from './Results';
 import AvatarEditor from './AvatarEditor';
 
 interface GameRoomProps {
@@ -195,78 +194,71 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Area - Card Selection */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Card Deck */}
-            {!revealed && !currentPlayer?.isObserver && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Wähle deine Karte
-                </h2>
-                <CardDeck
-                  selectedCard={currentPlayer?.selectedCard || null}
-                  onSelectCard={onSelectCard}
-                  disabled={revealed}
-                />
+        {/* Poker Table */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <PokerTable
+            players={players}
+            currentPlayerId={currentPlayer?.id || ''}
+            revealed={revealed}
+          />
+        </div>
+
+        {/* Card Selection and Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Card Deck */}
+          {!revealed && !currentPlayer?.isObserver && (
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Wähle deine Karte
+              </h2>
+              <CardDeck
+                selectedCard={currentPlayer?.selectedCard || null}
+                onSelectCard={onSelectCard}
+                disabled={revealed}
+              />
+            </div>
+          )}
+
+          {/* Observer Message */}
+          {!revealed && currentPlayer?.isObserver && (
+            <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
+              <div className="text-center py-8">
+                <svg className="mx-auto h-16 w-16 text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Beobachter-Modus aktiv</h3>
+                <p className="text-gray-600">Du beobachtest die Abstimmung, ohne selbst teilzunehmen.</p>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Observer Message */}
-            {!revealed && currentPlayer?.isObserver && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <div className="text-center py-8">
-                  <svg className="mx-auto h-16 w-16 text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Beobachter-Modus aktiv</h3>
-                  <p className="text-gray-600">Du beobachtest die Abstimmung, ohne selbst teilzunehmen.</p>
-                </div>
+          {/* Moderator Controls */}
+          {currentPlayer?.isModerator && (
+            <div className={`bg-white rounded-2xl shadow-lg p-6 ${!revealed && !currentPlayer?.isObserver ? '' : 'lg:col-span-2'}`}>
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Moderator Steuerung
+              </h2>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {!revealed && (
+                  <button
+                    onClick={onRevealCards}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                  >
+                    Karten aufdecken
+                  </button>
+                )}
+                {revealed && (
+                  <button
+                    onClick={onNewRound}
+                    className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                  >
+                    Neue Runde starten
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Results */}
-            {revealed && (
-              <Results players={players} />
-            )}
-
-            {/* Moderator Controls */}
-            {currentPlayer?.isModerator && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  Moderator Steuerung
-                </h2>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  {!revealed && (
-                    <button
-                      onClick={onRevealCards}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                    >
-                      Karten aufdecken
-                    </button>
-                  )}
-                  {revealed && (
-                    <button
-                      onClick={onNewRound}
-                      className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                    >
-                      Neue Runde starten
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar - Player List */}
-          <div className="lg:col-span-1">
-            <PlayerList
-              players={players}
-              currentPlayerId={currentPlayer?.id || ''}
-              revealed={revealed}
-            />
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
