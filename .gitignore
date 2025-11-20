@@ -59,3 +59,7 @@ coverage/
 # Optional: package-lock for specific workspaces (uncomment if needed)
 # client/package-lock.json
 # server/package-lock.json
+
+# Documentation files
+CHANGES.md
+DEPLOYMENT.md
