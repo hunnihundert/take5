@@ -1,8 +1,17 @@
-import { useState, useRef } from 'react';
-import { RoomState, CardValue } from '../types';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { RoomState, CardValue, Player } from '../types';
 import PokerTable from './PokerTable';
 import CardDeck from './CardDeck';
 import AvatarEditor from './AvatarEditor';
+import PlayerContextMenu from './PlayerContextMenu';
+import EmojiPicker from './EmojiPicker';
+import FlyingEmojiContainer, { useFlyingEmojis } from './FlyingEmoji';
+
+interface IncomingEmoji {
+  toPlayerId: string;
+  emoji: string;
+  id: string;
+}
 
 interface GameRoomProps {
   roomState: RoomState;
@@ -11,14 +20,41 @@ interface GameRoomProps {
   onNewRound: () => void;
   onToggleObserver: () => void;
   onUpdateAvatar: (avatarUrl: string | null) => void;
+  onThrowEmoji: (toPlayerId: string, emoji: string) => void;
+  incomingEmojis: IncomingEmoji[];
+  onRemoveIncomingEmoji: (id: string) => void;
 }
 
-const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggleObserver, onUpdateAvatar }: GameRoomProps) => {
+const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggleObserver, onUpdateAvatar, onThrowEmoji, incomingEmojis, onRemoveIncomingEmoji }: GameRoomProps) => {
   const { roomCode, currentPlayer, players, revealed } = roomState;
   const [copied, setCopied] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Emoji throwing state
+  const [contextMenu, setContextMenu] = useState<{ player: Player; x: number; y: number } | null>(null);
+  const [emojiPicker, setEmojiPicker] = useState<{ playerId: string; x: number; y: number } | null>(null);
+  const { emojis, addEmoji, removeEmoji } = useFlyingEmojis();
+  const playerPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const processedEmojisRef = useRef<Set<string>>(new Set());
+
+  // Handle incoming emojis
+  useEffect(() => {
+    incomingEmojis.forEach((incomingEmoji) => {
+      if (processedEmojisRef.current.has(incomingEmoji.id)) return;
+
+      processedEmojisRef.current.add(incomingEmoji.id);
+
+      const position = playerPositionsRef.current.get(incomingEmoji.toPlayerId);
+      if (position) {
+        addEmoji(incomingEmoji.emoji, position.x, position.y);
+      }
+
+      // Remove from parent after processing
+      onRemoveIncomingEmoji(incomingEmoji.id);
+    });
+  }, [incomingEmojis, addEmoji, onRemoveIncomingEmoji]);
 
   const handleCopyLink = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
@@ -78,6 +114,34 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
   const handleRemoveAvatar = () => {
     onUpdateAvatar(null);
   };
+
+  // Emoji throwing handlers
+  const handlePlayerRightClick = useCallback((player: Player, x: number, y: number) => {
+    setContextMenu({ player, x, y });
+    setEmojiPicker(null);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleThrowEmojiClick = useCallback(() => {
+    if (contextMenu) {
+      setEmojiPicker({ playerId: contextMenu.player.id, x: contextMenu.x, y: contextMenu.y });
+      setContextMenu(null);
+    }
+  }, [contextMenu]);
+
+  const handleEmojiPickerClose = useCallback(() => {
+    setEmojiPicker(null);
+  }, []);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    if (emojiPicker) {
+      onThrowEmoji(emojiPicker.playerId, emoji);
+      // Don't close the picker - user can keep throwing emojis or click outside to close
+    }
+  }, [emojiPicker, onThrowEmoji]);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -200,6 +264,8 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
             players={players}
             currentPlayerId={currentPlayer?.id || ''}
             revealed={revealed}
+            onPlayerRightClick={handlePlayerRightClick}
+            playerPositionsRef={playerPositionsRef}
           />
         </div>
 
@@ -270,8 +336,34 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
           onCancel={handleAvatarCancel}
         />
       )}
+
+      {/* Player Context Menu */}
+      {contextMenu && (
+        <PlayerContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          playerName={contextMenu.player.name}
+          onThrowEmoji={handleThrowEmojiClick}
+          onClose={handleContextMenuClose}
+        />
+      )}
+
+      {/* Emoji Picker */}
+      {emojiPicker && (
+        <EmojiPicker
+          x={emojiPicker.x}
+          y={emojiPicker.y}
+          onSelect={handleEmojiSelect}
+          onClose={handleEmojiPickerClose}
+        />
+      )}
+
+      {/* Flying Emojis */}
+      <FlyingEmojiContainer emojis={emojis} onRemoveEmoji={removeEmoji} />
     </div>
   );
 };
 
+// Export the component with a way to receive incoming emojis
 export default GameRoom;
+export type { GameRoomProps };

@@ -1,8 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { Player, RoomState, CardValue } from './types';
 import Home from './components/Home';
 import GameRoom from './components/GameRoom';
+
+interface IncomingEmoji {
+  toPlayerId: string;
+  emoji: string;
+  id: string;
+}
 
 function App() {
   const { socket, connected } = useSocket();
@@ -14,6 +20,7 @@ function App() {
   });
   const [inRoom, setInRoom] = useState(false);
   const [initialRoomCode, setInitialRoomCode] = useState<string>('');
+  const [incomingEmojis, setIncomingEmojis] = useState<IncomingEmoji[]>([]);
 
   // Read room code from URL on mount
   useEffect(() => {
@@ -151,6 +158,11 @@ function App() {
       alert(message);
     });
 
+    socket.on('emojiThrown', ({ toPlayerId, emoji }) => {
+      const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setIncomingEmojis(prev => [...prev, { toPlayerId, emoji, id }]);
+    });
+
     return () => {
       socket.off('roomJoined');
       socket.off('playerJoined');
@@ -161,6 +173,7 @@ function App() {
       socket.off('observerToggled');
       socket.off('avatarUpdated');
       socket.off('error');
+      socket.off('emojiThrown');
     };
   }, [socket]);
 
@@ -221,6 +234,15 @@ function App() {
     socket.emit('updateAvatar', avatarUrl);
   };
 
+  const handleThrowEmoji = useCallback((toPlayerId: string, emoji: string) => {
+    if (!socket) return;
+    socket.emit('throwEmoji', { toPlayerId, emoji });
+  }, [socket]);
+
+  const handleRemoveIncomingEmoji = useCallback((id: string) => {
+    setIncomingEmojis(prev => prev.filter(e => e.id !== id));
+  }, []);
+
   if (!connected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -245,6 +267,9 @@ function App() {
           onNewRound={handleNewRound}
           onToggleObserver={handleToggleObserver}
           onUpdateAvatar={handleUpdateAvatar}
+          onThrowEmoji={handleThrowEmoji}
+          incomingEmojis={incomingEmojis}
+          onRemoveIncomingEmoji={handleRemoveIncomingEmoji}
         />
       )}
     </div>

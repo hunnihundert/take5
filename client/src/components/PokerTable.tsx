@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Player } from '../types';
 import { triggerConfetti } from '../utils/confetti';
 
@@ -6,9 +6,12 @@ interface PokerTableProps {
   players: Player[];
   currentPlayerId: string;
   revealed: boolean;
+  onPlayerRightClick?: (player: Player, x: number, y: number) => void;
+  playerPositionsRef?: React.MutableRefObject<Map<string, { x: number; y: number }>>;
 }
 
-const PokerTable = ({ players, currentPlayerId, revealed }: PokerTableProps) => {
+const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, playerPositionsRef }: PokerTableProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   // Filter out observers for calculations
   const activePlayers = players.filter(p => !p.isObserver);
 
@@ -66,8 +69,26 @@ const PokerTable = ({ players, currentPlayerId, revealed }: PokerTableProps) => 
     return { x, y, angle };
   };
 
+  // Update player positions ref when positions change
+  const updatePlayerPosition = useCallback((playerId: string, element: HTMLDivElement | null) => {
+    if (!playerPositionsRef || !element) return;
+
+    const rect = element.getBoundingClientRect();
+    playerPositionsRef.current.set(playerId, {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
+  }, [playerPositionsRef]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, player: Player) => {
+    e.preventDefault();
+    if (onPlayerRightClick && player.id !== currentPlayerId) {
+      onPlayerRightClick(player, e.clientX, e.clientY);
+    }
+  }, [onPlayerRightClick, currentPlayerId]);
+
   return (
-    <div className="relative w-full h-full min-h-[600px] flex items-center justify-center">
+    <div ref={containerRef} className="relative w-full h-full min-h-[600px] flex items-center justify-center">
       {/* Poker Table */}
       <div className="relative w-full max-w-4xl aspect-[4/3]">
         {/* Table surface */}
@@ -122,11 +143,15 @@ const PokerTable = ({ players, currentPlayerId, revealed }: PokerTableProps) => 
           return (
             <div
               key={player.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
+              ref={(el) => updatePlayerPosition(player.id, el)}
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
+                player.id !== currentPlayerId ? 'cursor-context-menu' : ''
+              }`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
               }}
+              onContextMenu={(e) => handleContextMenu(e, player)}
             >
               <div className={`flex flex-col items-center gap-2 ${isCurrentPlayer ? 'scale-110' : ''}`}>
                 {/* Avatar */}

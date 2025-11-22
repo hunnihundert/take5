@@ -4,6 +4,9 @@ Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit Rea
 
 ## Neueste Verbesserungen
 
+✅ **Emoji werfen** - Rechtsklick auf Spieler um lustige Emojis zu werfen mit Bogen-Animation<br>
+✅ **Spieler-Avatare** - Eigenes Profilbild hochladen mit Zuschneidefunktion<br>
+✅ **Poker-Tisch Ansicht** - Spieler werden um einen virtuellen Pokertisch angeordnet<br>
 ✅ **Kompaktes Kartendeck** - Reduziert auf 1, 2, 3, 5, 8, 13 für schnellere Entscheidungen<br>
 ✅ **Dezente Kartenauswahl** - Gewählte Karte mit sanftem blauen Hintergrund<br>
 ✅ **Persistente Hervorhebung** - Ausgewählte Karte bleibt dauerhaft dezent hervorgehoben<br>
@@ -20,6 +23,9 @@ Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit Rea
 ✨ **Echtzeit-Synchronisation** - Alle Spieler sehen Live-Updates dank Socket.io<br>
 🎯 **Intuitive Benutzeroberfläche** - Responsive Design für Desktop und Mobile<br>
 🎴 **Kompaktes Kartendeck** - Werte: 1, 2, 3, 5, 8, 13 (Fibonacci-basiert)<br>
+🎭 **Emoji werfen** - Rechtsklick auf Spieler um Emojis zu werfen (Bogen-Animation mit Bounce-Effekt)<br>
+🖼️ **Spieler-Avatare** - Eigenes Profilbild hochladen und zuschneiden<br>
+🎰 **Poker-Tisch** - Spieler werden kreisförmig um einen virtuellen Pokertisch angeordnet<br>
 🌟 **Dezente Hervorhebung** - Gewählte Karte mit sanftem blauen Hintergrund und Ring<br>
 🔒 **Verdeckte Karten** - Gewählte Karten werden als verschlossene Karte angezeigt<br>
 🎬 **Sanfte Animationen** - Flip-Animation beim Aufdecken der Karten<br>
@@ -55,14 +61,21 @@ takeFive/
 ├── client/                 # React Frontend
 │   ├── src/
 │   │   ├── components/    # React Komponenten
-│   │   │   ├── Home.tsx           # Startseite
-│   │   │   ├── GameRoom.tsx       # Spielraum
-│   │   │   ├── CardDeck.tsx       # Kartendeck
-│   │   │   ├── PlayerList.tsx     # Spielerliste
-│   │   │   └── Results.tsx        # Ergebnisanzeige
+│   │   │   ├── Home.tsx              # Startseite
+│   │   │   ├── GameRoom.tsx          # Spielraum
+│   │   │   ├── PokerTable.tsx        # Poker-Tisch Ansicht
+│   │   │   ├── CardDeck.tsx          # Kartendeck
+│   │   │   ├── PlayerList.tsx        # Spielerliste
+│   │   │   ├── AvatarEditor.tsx      # Avatar-Zuschneidung
+│   │   │   ├── EmojiPicker.tsx       # Emoji-Auswahl
+│   │   │   ├── FlyingEmoji.tsx       # Fliegende Emoji-Animation
+│   │   │   ├── PlayerContextMenu.tsx # Rechtsklick-Menü
+│   │   │   └── Results.tsx           # Ergebnisanzeige
 │   │   ├── hooks/         # Custom React Hooks
 │   │   │   └── useSocket.ts       # Socket.io Hook
 │   │   ├── types/         # TypeScript Typen
+│   │   ├── utils/         # Hilfsfunktionen
+│   │   │   └── confetti.ts        # Konfetti-Animation
 │   │   ├── App.tsx        # Haupt-App-Komponente
 │   │   ├── main.tsx       # Entry Point
 │   │   └── index.css      # Globale Styles
@@ -185,6 +198,21 @@ Startet den Backend-Server auf Port 3001.
   - Beobachter zählen nicht für das automatische Aufdecken
   - Du siehst alle Ergebnisse wie ein aktiver Spieler
 
+### 6. Avatar ändern
+- **Hochladen**: Klicke auf deinen Avatar im Header und wähle ein Bild
+- **Zuschneiden**: Passe den Bildausschnitt im Editor an
+- **Entfernen**: Hover über den Avatar und klicke auf das X-Symbol
+- Avatare werden allen Spielern in Echtzeit angezeigt
+
+### 7. Emoji werfen
+- **Öffnen**: Rechtsklick auf einen anderen Spieler am Pokertisch
+- **Auswählen**: Klicke auf "Emoji werfen" im Kontextmenü
+- **Werfen**: Wähle ein Emoji aus dem Picker (9 Kategorien verfügbar)
+- **Mehrfach werfen**: Der Picker bleibt offen für weitere Würfe
+- **Schließen**: Klicke außerhalb des Pickers oder drücke Escape
+- **Kategorien**: Lustig, Zahlen, Gesichter, Gesten, Herzen, Objekte, Essen, Tiere, Natur
+- **Zuletzt verwendet**: Die letzten 5 geworfenen Emojis erscheinen oben
+
 ## Spielregeln
 
 ### Moderator
@@ -217,6 +245,8 @@ Die Karten folgen einer Fibonacci-Sequenz:
 - `revealCards()` - Karten aufdecken (nur Moderator)
 - `startNewRound()` - Neue Runde starten (nur Moderator)
 - `toggleObserver()` - Beobachter-Modus umschalten
+- `updateAvatar(avatarUrl)` - Avatar aktualisieren (Base64 oder null)
+- `throwEmoji({ toPlayerId, emoji })` - Emoji auf Spieler werfen
 
 #### Server → Client
 - `roomJoined({ roomCode, player, players })` - Erfolgreich beigetreten
@@ -226,6 +256,8 @@ Die Karten folgen einer Fibonacci-Sequenz:
 - `cardsRevealed(players)` - Karten wurden aufgedeckt
 - `newRound()` - Neue Runde wurde gestartet
 - `observerToggled({ playerId, isObserver })` - Beobachter-Status geändert
+- `avatarUpdated({ playerId, avatarUrl })` - Avatar wurde aktualisiert
+- `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji wurde geworfen
 - `error(message)` - Fehler aufgetreten
 
 ## Troubleshooting

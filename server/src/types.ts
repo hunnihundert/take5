@@ -26,6 +26,7 @@ export interface ServerToClientEvents {
   newRound: () => void;
   observerToggled: (data: { playerId: string; isObserver: boolean }) => void;
   avatarUpdated: (data: { playerId: string; avatarUrl: string | null }) => void;
+  emojiThrown: (data: { fromPlayerId: string; toPlayerId: string; emoji: string }) => void;
   error: (message: string) => void;
 }
 
@@ -37,4 +38,5 @@ export interface ClientToServerEvents {
   startNewRound: () => void;
   toggleObserver: () => void;
   updateAvatar: (avatarUrl: string | null) => void;
+  throwEmoji: (data: { toPlayerId: string; emoji: string }) => void;
 }

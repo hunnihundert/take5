@@ -156,6 +156,24 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     });
   });
 
+  socket.on('throwEmoji', ({ toPlayerId, emoji }) => {
+    const roomCode = socketToRoom.get(socket.id);
+    if (!roomCode) return;
+
+    const room = roomManager.getRoom(roomCode);
+    if (!room) return;
+
+    // Verify target player exists in the room
+    if (!room.players.has(toPlayerId)) return;
+
+    // Broadcast emoji throw to all players in the room
+    io.to(roomCode).emit('emojiThrown', {
+      fromPlayerId: socket.id,
+      toPlayerId,
+      emoji
+    });
+  });
+
   socket.on('revealCards', () => {
     const roomCode = socketToRoom.get(socket.id);
     if (!roomCode) return;
