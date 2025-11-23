@@ -1,4 +1,5 @@
-import { Room, Player, CardValue } from './types';
+import { Room, Player, CardValue, Story, JiraConfig } from './types';
+import { randomUUID } from 'crypto';
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
@@ -28,7 +29,10 @@ export class RoomManager {
       code,
       players: new Map([[playerId, player]]),
       revealed: false,
-      createdAt: new Date()
+      createdAt: new Date(),
+      stories: [],
+      activeStoryId: undefined,
+      jiraConfig: undefined
     };
 
     this.rooms.set(code, room);
@@ -187,5 +191,143 @@ export class RoomManager {
 
   getPlayersArray(room: Room): Player[] {
     return Array.from(room.players.values());
+  }
+
+  // Story management methods
+
+  isModerator(roomCode: string, playerId: string): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+    const player = room.players.get(playerId);
+    return player?.isModerator ?? false;
+  }
+
+  addManualStory(roomCode: string, summary: string): Story | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return null;
+
+    const story: Story = {
+      id: randomUUID(),
+      summary: summary.trim(),
+      isManual: true,
+      voted: false
+    };
+
+    room.stories.push(story);
+    return story;
+  }
+
+  addJiraStory(roomCode: string, jiraStory: Omit<Story, 'id' | 'isManual' | 'voted'>): Story | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return null;
+
+    // Check for duplicates by key
+    if (jiraStory.key && room.stories.some(s => s.key === jiraStory.key)) {
+      return null; // Duplicate
+    }
+
+    const story: Story = {
+      id: randomUUID(),
+      ...jiraStory,
+      isManual: false,
+      voted: false
+    };
+
+    room.stories.push(story);
+    return story;
+  }
+
+  removeStory(roomCode: string, storyId: string): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    const index = room.stories.findIndex(s => s.id === storyId);
+    if (index === -1) return false;
+
+    room.stories.splice(index, 1);
+
+    // If active story was removed, clear selection
+    if (room.activeStoryId === storyId) {
+      room.activeStoryId = undefined;
+    }
+
+    return true;
+  }
+
+  selectStory(roomCode: string, storyId: string | null): Story | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return null;
+
+    if (storyId === null) {
+      room.activeStoryId = undefined;
+      return null;
+    }
+
+    const story = room.stories.find(s => s.id === storyId);
+    if (!story) return null;
+
+    room.activeStoryId = storyId;
+    return story;
+  }
+
+  getActiveStory(roomCode: string): Story | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room || !room.activeStoryId) return null;
+    return room.stories.find(s => s.id === room.activeStoryId) || null;
+  }
+
+  applyStoryPoints(roomCode: string, storyId: string, points: number): Story | null {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return null;
+
+    const story = room.stories.find(s => s.id === storyId);
+    if (!story) return null;
+
+    story.storyPoints = points;
+    story.voted = true;
+    return story;
+  }
+
+  clearStories(roomCode: string): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.stories = [];
+    room.activeStoryId = undefined;
+    return true;
+  }
+
+  getStories(roomCode: string): Story[] {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return [];
+    return room.stories;
+  }
+
+  // Jira configuration methods
+
+  setJiraConfig(roomCode: string, config: JiraConfig): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.jiraConfig = config;
+    return true;
+  }
+
+  getJiraConfig(roomCode: string): JiraConfig | undefined {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    return room?.jiraConfig;
+  }
+
+  clearJiraConfig(roomCode: string): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    if (!room) return false;
+
+    room.jiraConfig = undefined;
+    return true;
+  }
+
+  hasJiraConfig(roomCode: string): boolean {
+    const room = this.rooms.get(roomCode.toUpperCase());
+    return room?.jiraConfig !== undefined;
   }
 }

@@ -6,6 +6,11 @@ import AvatarEditor from './AvatarEditor';
 import PlayerContextMenu from './PlayerContextMenu';
 import EmojiPicker from './EmojiPicker';
 import FlyingEmojiContainer, { useFlyingEmojis } from './FlyingEmoji';
+import StoryList from './StoryList';
+import ActiveStoryBanner from './ActiveStoryBanner';
+import JiraConfigModal from './JiraConfigModal';
+import JqlImportSection from './JqlImportSection';
+import ApplyPointsDialog from './ApplyPointsDialog';
 
 interface IncomingEmoji {
   toPlayerId: string;
@@ -23,14 +28,29 @@ interface GameRoomProps {
   onThrowEmoji: (toPlayerId: string, emoji: string) => void;
   incomingEmojis: IncomingEmoji[];
   onRemoveIncomingEmoji: (id: string) => void;
+  onAddManualStory: (summary: string) => void;
+  onRemoveStory: (storyId: string) => void;
+  onSelectStory: (storyId: string | null) => void;
+  onApplyStoryPoints: (storyId: string, points: number) => void;
+  onClearStories: () => void;
+  onConfigureJira: (config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => void;
+  onDisconnectJira: () => void;
+  onAddStoryByLink: (url: string) => void;
+  onFetchJiraStories: (jql: string) => void;
+  onRefreshJiraStories: () => void;
 }
 
-const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggleObserver, onUpdateAvatar, onThrowEmoji, incomingEmojis, onRemoveIncomingEmoji }: GameRoomProps) => {
-  const { roomCode, currentPlayer, players, revealed } = roomState;
+const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggleObserver, onUpdateAvatar, onThrowEmoji, incomingEmojis, onRemoveIncomingEmoji, onAddManualStory, onRemoveStory, onSelectStory, onApplyStoryPoints, onClearStories, onConfigureJira, onDisconnectJira, onAddStoryByLink, onFetchJiraStories, onRefreshJiraStories }: GameRoomProps) => {
+  const { roomCode, currentPlayer, players, revealed, stories, activeStory, jiraConnected } = roomState;
   const [copied, setCopied] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Jira modal state
+  const [showJiraConfig, setShowJiraConfig] = useState(false);
+  const [showApplyPoints, setShowApplyPoints] = useState(false);
+  const [lastRevealedState, setLastRevealedState] = useState(false);
 
   // Emoji throwing state
   const [contextMenu, setContextMenu] = useState<{ player: Player; x: number; y: number } | null>(null);
@@ -55,6 +75,14 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
       onRemoveIncomingEmoji(incomingEmoji.id);
     });
   }, [incomingEmojis, addEmoji, onRemoveIncomingEmoji]);
+
+  // Show ApplyPointsDialog when cards are revealed with an active story
+  useEffect(() => {
+    if (revealed && !lastRevealedState && activeStory && currentPlayer?.isModerator) {
+      setShowApplyPoints(true);
+    }
+    setLastRevealedState(revealed);
+  }, [revealed, lastRevealedState, activeStory, currentPlayer?.isModerator]);
 
   const handleCopyLink = async () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
@@ -258,15 +286,51 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
           </div>
         </div>
 
-        {/* Poker Table */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <PokerTable
-            players={players}
-            currentPlayerId={currentPlayer?.id || ''}
-            revealed={revealed}
-            onPlayerRightClick={handlePlayerRightClick}
-            playerPositionsRef={playerPositionsRef}
-          />
+        {/* Main Content Area with Stories Sidebar */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+          {/* Poker Table and Active Story */}
+          <div className="flex-1">
+            {/* Active Story Banner */}
+            {activeStory && (
+              <ActiveStoryBanner story={activeStory} />
+            )}
+
+            {/* Poker Table */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <PokerTable
+                players={players}
+                currentPlayerId={currentPlayer?.id || ''}
+                revealed={revealed}
+                onPlayerRightClick={handlePlayerRightClick}
+                playerPositionsRef={playerPositionsRef}
+              />
+            </div>
+          </div>
+
+          {/* Story List Sidebar */}
+          <div className="lg:w-80 flex-shrink-0">
+            <StoryList
+              stories={stories}
+              activeStory={activeStory}
+              isModerator={currentPlayer?.isModerator || false}
+              jiraConnected={jiraConnected}
+              onSelectStory={onSelectStory}
+              onRemoveStory={onRemoveStory}
+              onAddManualStory={onAddManualStory}
+              onClearStories={onClearStories}
+              onAddStoryByLink={onAddStoryByLink}
+              onOpenJiraConfig={() => setShowJiraConfig(true)}
+            />
+
+            {/* JQL Import Section (Moderator only, when Jira connected) */}
+            {currentPlayer?.isModerator && jiraConnected && (
+              <JqlImportSection
+                onFetchStories={onFetchJiraStories}
+                onRefresh={onRefreshJiraStories}
+                jiraConnected={jiraConnected}
+              />
+            )}
+          </div>
         </div>
 
         {/* Card Selection and Controls */}
@@ -360,6 +424,26 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
 
       {/* Flying Emojis */}
       <FlyingEmojiContainer emojis={emojis} onRemoveEmoji={removeEmoji} />
+
+      {/* Jira Config Modal */}
+      <JiraConfigModal
+        isOpen={showJiraConfig}
+        onClose={() => setShowJiraConfig(false)}
+        onConnect={onConfigureJira}
+        onDisconnect={onDisconnectJira}
+        isConnected={jiraConnected}
+      />
+
+      {/* Apply Points Dialog */}
+      <ApplyPointsDialog
+        isOpen={showApplyPoints}
+        story={activeStory}
+        players={players}
+        revealed={revealed}
+        onApplyPoints={onApplyStoryPoints}
+        onSkip={() => setShowApplyPoints(false)}
+        onClose={() => setShowApplyPoints(false)}
+      />
     </div>
   );
 };

@@ -4,6 +4,9 @@ Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit Rea
 
 ## Neueste Verbesserungen
 
+✅ **Jira Integration** - Stories direkt aus Jira importieren und Story Points zurück synchronisieren<br>
+✅ **Story-Management** - Stories zur Abstimmung hinzufügen, auswählen und verwalten<br>
+✅ **JQL-Import** - Mehrere Stories auf einmal via JQL-Abfragen importieren<br>
 ✅ **Emoji werfen** - Rechtsklick auf Spieler um lustige Emojis zu werfen mit Bogen-Animation<br>
 ✅ **Spieler-Avatare** - Eigenes Profilbild hochladen mit Zuschneidefunktion<br>
 ✅ **Poker-Tisch Ansicht** - Spieler werden um einen virtuellen Pokertisch angeordnet<br>
@@ -20,6 +23,16 @@ Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit Rea
 
 ## Features
 
+### Jira Integration
+🔗 **Jira-Anbindung** - Verbinde deinen Raum mit deiner Jira-Instanz<br>
+📥 **Story-Import per Link** - Füge Jira-Issues durch Einfügen des Links hinzu<br>
+🔍 **JQL-Import** - Importiere mehrere Stories mit JQL-Abfragen<br>
+📤 **Story Points Sync** - Schreibe geschätzte Story Points zurück nach Jira<br>
+📝 **Manuelle Stories** - Füge auch Stories ohne Jira hinzu<br>
+🎯 **Aktive Story-Anzeige** - Banner zeigt die aktuell zu schätzende Story<br>
+✅ **Fortschritts-Tracking** - Übersicht über geschätzte vs. offene Stories<br>
+
+### Kernfunktionen
 ✨ **Echtzeit-Synchronisation** - Alle Spieler sehen Live-Updates dank Socket.io<br>
 🎯 **Intuitive Benutzeroberfläche** - Responsive Design für Desktop und Mobile<br>
 🎴 **Kompaktes Kartendeck** - Werte: 1, 2, 3, 5, 8, 13 (Fibonacci-basiert)<br>
@@ -70,7 +83,12 @@ takeFive/
 │   │   │   ├── EmojiPicker.tsx       # Emoji-Auswahl
 │   │   │   ├── FlyingEmoji.tsx       # Fliegende Emoji-Animation
 │   │   │   ├── PlayerContextMenu.tsx # Rechtsklick-Menü
-│   │   │   └── Results.tsx           # Ergebnisanzeige
+│   │   │   ├── Results.tsx           # Ergebnisanzeige
+│   │   │   ├── StoryList.tsx         # Story-Liste mit Jira-Import
+│   │   │   ├── ActiveStoryBanner.tsx # Aktuelle Story-Anzeige
+│   │   │   ├── JiraConfigModal.tsx   # Jira-Konfiguration
+│   │   │   ├── JqlImportSection.tsx  # JQL-Import
+│   │   │   └── ApplyPointsDialog.tsx # Story Points vergeben
 │   │   ├── hooks/         # Custom React Hooks
 │   │   │   └── useSocket.ts       # Socket.io Hook
 │   │   ├── types/         # TypeScript Typen
@@ -84,6 +102,8 @@ takeFive/
 │   └── vite.config.ts
 ├── server/                # Node.js Backend
 │   ├── src/
+│   │   ├── services/
+│   │   │   └── jiraService.ts # Jira API Integration
 │   │   ├── index.ts       # Server Entry Point
 │   │   ├── roomManager.ts # Raum-Verwaltungslogik
 │   │   └── types.ts       # TypeScript Typen
@@ -213,6 +233,48 @@ Startet den Backend-Server auf Port 3001.
 - **Kategorien**: Lustig, Zahlen, Gesichter, Gesten, Herzen, Objekte, Essen, Tiere, Natur
 - **Zuletzt verwendet**: Die letzten 5 geworfenen Emojis erscheinen oben
 
+### 8. Jira Integration (Moderator)
+
+#### Jira verbinden
+1. Klicke auf das Jira-Symbol in der Story-Liste (rechte Seitenleiste)
+2. Gib deine Jira-Instanz-URL ein (z.B. `https://dein-team.atlassian.net`)
+3. Gib deine E-Mail-Adresse ein
+4. Erstelle ein API-Token unter [Atlassian API-Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+5. Optional: Gib die Story Points Feld-ID ein (z.B. `customfield_10016`)
+6. Klicke auf "Verbinden"
+
+#### Stories per Link importieren
+1. Kopiere die URL eines Jira-Issues (z.B. `https://team.atlassian.net/browse/PROJ-123`)
+2. Füge den Link in das Eingabefeld "Jira-Link einfügen..." ein
+3. Drücke Enter oder klicke auf das Plus-Symbol
+4. Die Story wird automatisch mit Titel importiert
+
+#### Stories per JQL importieren
+1. Stelle sicher, dass Jira verbunden ist
+2. Öffne "Erweitert: JQL-Import" unter der Story-Liste
+3. Gib eine JQL-Abfrage ein oder nutze die Schnellauswahl:
+   - `sprint in openSprints()` - Aktueller Sprint
+   - `assignee = currentUser() AND type = Story` - Meine Stories
+   - `"Story Points" is EMPTY AND type = Story` - Ohne Schätzung
+4. Klicke auf "Importieren"
+
+#### Manuelle Stories hinzufügen
+1. Klicke auf "Story hinzufügen" unter der Story-Liste
+2. Gib eine Beschreibung ein
+3. Klicke auf "Hinzufügen"
+
+#### Story zur Abstimmung auswählen
+1. Klicke auf den Pfeil-Button neben einer Story
+2. Die Story erscheint als Banner über dem Pokertisch
+3. Alle Spieler sehen, welche Story gerade geschätzt wird
+
+#### Story Points vergeben
+1. Nach dem Aufdecken der Karten erscheint ein Dialog
+2. Bei Konsens wird der Wert automatisch vorgeschlagen
+3. Wähle den gewünschten Story Point-Wert
+4. Klicke auf "Anwenden" (speichert lokal und optional in Jira)
+5. Oder klicke "Überspringen" um ohne Punkte fortzufahren
+
 ## Spielregeln
 
 ### Moderator
@@ -248,8 +310,22 @@ Die Karten folgen einer Fibonacci-Sequenz:
 - `updateAvatar(avatarUrl)` - Avatar aktualisieren (Base64 oder null)
 - `throwEmoji({ toPlayerId, emoji })` - Emoji auf Spieler werfen
 
+**Story Events (nur Moderator):**
+- `addManualStory(summary)` - Manuelle Story hinzufügen
+- `removeStory(storyId)` - Story entfernen
+- `selectStory(storyId)` - Story zur Abstimmung auswählen
+- `applyStoryPoints({ storyId, points })` - Story Points vergeben
+- `clearStories()` - Alle Stories löschen
+
+**Jira Events (nur Moderator):**
+- `configureJira({ baseUrl, email, apiToken, storyPointsFieldId? })` - Jira verbinden
+- `disconnectJira()` - Jira-Verbindung trennen
+- `addStoryByLink(url)` - Story per Jira-Link importieren
+- `fetchJiraStories(jql)` - Stories per JQL importieren
+- `refreshJiraStories()` - Jira-Stories aktualisieren
+
 #### Server → Client
-- `roomJoined({ roomCode, player, players })` - Erfolgreich beigetreten
+- `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected })` - Erfolgreich beigetreten
 - `playerJoined(player)` - Neuer Spieler ist beigetreten
 - `playerLeft(playerId)` - Spieler hat den Raum verlassen
 - `cardSelected({ playerId, hasVoted })` - Spieler hat Karte gewählt
@@ -259,6 +335,17 @@ Die Karten folgen einer Fibonacci-Sequenz:
 - `avatarUpdated({ playerId, avatarUrl })` - Avatar wurde aktualisiert
 - `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji wurde geworfen
 - `error(message)` - Fehler aufgetreten
+
+**Story Events:**
+- `storyAdded(story)` - Story wurde hinzugefügt
+- `storiesUpdated(stories)` - Story-Liste wurde aktualisiert
+- `storySelected({ storyId, story })` - Story wurde ausgewählt
+- `storyPointsApplied({ storyId, points })` - Story Points wurden vergeben
+
+**Jira Events:**
+- `jiraConfigured({ baseUrl })` - Jira wurde verbunden
+- `jiraDisconnected()` - Jira wurde getrennt
+- `jiraError({ code, message })` - Jira-Fehler aufgetreten
 
 ## Troubleshooting
 

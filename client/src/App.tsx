@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSocket } from './hooks/useSocket';
-import { Player, RoomState, CardValue } from './types';
+import { Player, RoomState, CardValue, Story } from './types';
 import Home from './components/Home';
 import GameRoom from './components/GameRoom';
 
@@ -16,7 +16,10 @@ function App() {
     roomCode: '',
     currentPlayer: null,
     players: [],
-    revealed: false
+    revealed: false,
+    stories: [],
+    activeStory: null,
+    jiraConnected: false
   });
   const [inRoom, setInRoom] = useState(false);
   const [initialRoomCode, setInitialRoomCode] = useState<string>('');
@@ -34,12 +37,16 @@ function App() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('roomJoined', ({ roomCode, player, players }) => {
+    socket.on('roomJoined', ({ roomCode, player, players, stories, activeStoryId, jiraConnected }) => {
+      const activeStory = activeStoryId ? stories.find((s: Story) => s.id === activeStoryId) || null : null;
       setRoomState({
         roomCode,
         currentPlayer: player,
         players,
-        revealed: false
+        revealed: false,
+        stories: stories || [],
+        activeStory,
+        jiraConnected: jiraConnected || false
       });
       setInRoom(true);
 
@@ -163,6 +170,66 @@ function App() {
       setIncomingEmojis(prev => [...prev, { toPlayerId, emoji, id }]);
     });
 
+    // Story event listeners
+    socket.on('storyAdded', (story: Story) => {
+      setRoomState(prev => ({
+        ...prev,
+        stories: [...prev.stories, story]
+      }));
+    });
+
+    socket.on('storiesUpdated', (stories: Story[]) => {
+      setRoomState(prev => {
+        // Update activeStory if it still exists
+        const activeStory = prev.activeStory
+          ? stories.find(s => s.id === prev.activeStory!.id) || null
+          : null;
+        return {
+          ...prev,
+          stories,
+          activeStory
+        };
+      });
+    });
+
+    socket.on('storySelected', ({ story }: { storyId: string; story: Story | null }) => {
+      setRoomState(prev => ({
+        ...prev,
+        activeStory: story
+      }));
+    });
+
+    socket.on('storyPointsApplied', ({ storyId, points }: { storyId: string; points: number }) => {
+      setRoomState(prev => ({
+        ...prev,
+        stories: prev.stories.map(s =>
+          s.id === storyId ? { ...s, storyPoints: points, voted: true } : s
+        ),
+        activeStory: prev.activeStory?.id === storyId
+          ? { ...prev.activeStory, storyPoints: points, voted: true }
+          : prev.activeStory
+      }));
+    });
+
+    // Jira event listeners
+    socket.on('jiraConfigured', () => {
+      setRoomState(prev => ({
+        ...prev,
+        jiraConnected: true
+      }));
+    });
+
+    socket.on('jiraDisconnected', () => {
+      setRoomState(prev => ({
+        ...prev,
+        jiraConnected: false
+      }));
+    });
+
+    socket.on('jiraError', ({ message }: { code: string; message: string }) => {
+      alert(`Jira Fehler: ${message}`);
+    });
+
     return () => {
       socket.off('roomJoined');
       socket.off('playerJoined');
@@ -174,6 +241,13 @@ function App() {
       socket.off('avatarUpdated');
       socket.off('error');
       socket.off('emojiThrown');
+      socket.off('storyAdded');
+      socket.off('storiesUpdated');
+      socket.off('storySelected');
+      socket.off('storyPointsApplied');
+      socket.off('jiraConfigured');
+      socket.off('jiraDisconnected');
+      socket.off('jiraError');
     };
   }, [socket]);
 
@@ -243,6 +317,58 @@ function App() {
     setIncomingEmojis(prev => prev.filter(e => e.id !== id));
   }, []);
 
+  // Story management handlers
+  const handleAddManualStory = useCallback((summary: string) => {
+    if (!socket) return;
+    socket.emit('addManualStory', summary);
+  }, [socket]);
+
+  const handleRemoveStory = useCallback((storyId: string) => {
+    if (!socket) return;
+    socket.emit('removeStory', storyId);
+  }, [socket]);
+
+  const handleSelectStory = useCallback((storyId: string | null) => {
+    if (!socket) return;
+    socket.emit('selectStory', storyId);
+  }, [socket]);
+
+  const handleApplyStoryPoints = useCallback((storyId: string, points: number) => {
+    if (!socket) return;
+    socket.emit('applyStoryPoints', { storyId, points });
+  }, [socket]);
+
+  const handleClearStories = useCallback(() => {
+    if (!socket) return;
+    socket.emit('clearStories');
+  }, [socket]);
+
+  // Jira handlers
+  const handleConfigureJira = useCallback((config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => {
+    if (!socket) return;
+    socket.emit('configureJira', config);
+  }, [socket]);
+
+  const handleDisconnectJira = useCallback(() => {
+    if (!socket) return;
+    socket.emit('disconnectJira');
+  }, [socket]);
+
+  const handleAddStoryByLink = useCallback((url: string) => {
+    if (!socket) return;
+    socket.emit('addStoryByLink', url);
+  }, [socket]);
+
+  const handleFetchJiraStories = useCallback((jql: string) => {
+    if (!socket) return;
+    socket.emit('fetchJiraStories', jql);
+  }, [socket]);
+
+  const handleRefreshJiraStories = useCallback(() => {
+    if (!socket) return;
+    socket.emit('refreshJiraStories');
+  }, [socket]);
+
   if (!connected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -270,6 +396,16 @@ function App() {
           onThrowEmoji={handleThrowEmoji}
           incomingEmojis={incomingEmojis}
           onRemoveIncomingEmoji={handleRemoveIncomingEmoji}
+          onAddManualStory={handleAddManualStory}
+          onRemoveStory={handleRemoveStory}
+          onSelectStory={handleSelectStory}
+          onApplyStoryPoints={handleApplyStoryPoints}
+          onClearStories={handleClearStories}
+          onConfigureJira={handleConfigureJira}
+          onDisconnectJira={handleDisconnectJira}
+          onAddStoryByLink={handleAddStoryByLink}
+          onFetchJiraStories={handleFetchJiraStories}
+          onRefreshJiraStories={handleRefreshJiraStories}
         />
       )}
     </div>
