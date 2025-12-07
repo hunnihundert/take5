@@ -145,4 +145,45 @@ describe('RoomManager', () => {
             expect(active?.id).toBe(story!.id);
         });
     });
+
+    describe('Edge Cases', () => {
+        let roomCode: string;
+
+        beforeEach(() => {
+            const result = roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            roomCode = result.data.room.code;
+        });
+
+        it('should promote new moderator when current leaves', () => {
+            // Add another player
+            const p2Id = 'p2';
+            roomManager.joinRoom(roomCode, 'Player 2', p2Id);
+
+            // Original mod leaves
+            roomManager.removePlayer(roomCode, playerId);
+
+            const room = roomManager.getRoom(roomCode);
+            expect(room).toBeDefined();
+
+            const p2 = room?.players.get(p2Id);
+            expect(p2?.isModerator).toBe(true);
+        });
+
+        it('should reset votes when toggling to observer', () => {
+            // Vote first
+            roomManager.selectCard(roomCode, playerId, '5');
+            let player = roomManager.getRoom(roomCode)?.players.get(playerId);
+            expect(player?.hasVoted).toBe(true);
+            expect(player?.selectedCard).toBe('5');
+
+            // Become observer
+            roomManager.toggleObserver(roomCode, playerId);
+
+            player = roomManager.getRoom(roomCode)?.players.get(playerId);
+            expect(player?.isObserver).toBe(true);
+            expect(player?.hasVoted).toBe(false);
+            expect(player?.selectedCard).toBeNull();
+        });
+    });
 });
