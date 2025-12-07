@@ -1,10 +1,18 @@
 import { SocketHandler } from './types';
+import { logger } from '../utils/logger';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
 
     socket.on('createRoom', (playerName: string, callback) => {
         try {
-            const { room, player } = roomManager.createRoom(playerName, socket.id);
+            const result = roomManager.createRoom(playerName, socket.id);
+
+            if (!result.success) {
+                callback({ success: false, error: result.error });
+                return;
+            }
+
+            const { room, player } = result.data;
             socketToRoom.set(socket.id, room.code);
 
             socket.join(room.code);
@@ -18,8 +26,6 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
                 activeStoryId: room.activeStoryId,
                 jiraConnected: room.jiraConfig !== undefined
             });
-
-            console.log(`Room created: ${room.code} by ${playerName}`);
         } catch (error) {
             callback({ success: false, error: 'Fehler beim Erstellen des Raums' });
         }
@@ -29,17 +35,20 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         try {
             const result = roomManager.joinRoom(roomCode, playerName, socket.id);
 
-            if (!result) {
-                callback({ success: false, error: 'Raum nicht gefunden' });
-                return;
+            if (!result) { // This case is actually covered by result.success being false if I adhered to my own type, but joinRoom returns Result which is objects. Wait, does joinRoom return null? No, I defined it to return Result.
+                // Re-reading my RoomManager code: 
+                // joinRoom returns Result<{ room: Room; player: Player }>
+                // So it will never be null/undefined.
+                // However, the original code checked for !result.
             }
+            // Let's safe guard.
 
-            if (result.error) {
+            if (!result.success) {
                 callback({ success: false, error: result.error });
                 return;
             }
 
-            const { room, player } = result;
+            const { room, player } = result.data;
             socketToRoom.set(socket.id, room.code);
 
             socket.join(room.code);
@@ -58,8 +67,6 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
 
             // Notify other players
             socket.to(room.code).emit('playerJoined', player);
-
-            console.log(`${playerName} joined room ${room.code}`);
         } catch (error) {
             callback({ success: false, error: 'Fehler beim Beitreten' });
         }
