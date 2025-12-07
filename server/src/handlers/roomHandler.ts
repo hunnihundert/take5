@@ -35,14 +35,6 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         try {
             const result = roomManager.joinRoom(roomCode, playerName, socket.id);
 
-            if (!result) { // This case is actually covered by result.success being false if I adhered to my own type, but joinRoom returns Result which is objects. Wait, does joinRoom return null? No, I defined it to return Result.
-                // Re-reading my RoomManager code: 
-                // joinRoom returns Result<{ room: Room; player: Player }>
-                // So it will never be null/undefined.
-                // However, the original code checked for !result.
-            }
-            // Let's safe guard.
-
             if (!result.success) {
                 callback({ success: false, error: result.error });
                 return;
