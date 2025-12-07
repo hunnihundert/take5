@@ -23,7 +23,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
                 player,
                 players: roomManager.getPlayersArray(room),
                 stories: room.stories,
-                activeStoryId: room.activeStoryId,
+                activeStoryId: room.activeStoryId ?? null,
                 jiraConnected: room.jiraConfig !== undefined
             });
         } catch (error) {
@@ -53,7 +53,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
                 player,
                 players: roomManager.getPlayersArray(room),
                 stories: room.stories,
-                activeStoryId: room.activeStoryId,
+                activeStoryId: room.activeStoryId ?? null,
                 jiraConnected: room.jiraConfig !== undefined
             });
 

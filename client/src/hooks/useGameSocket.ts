@@ -83,9 +83,16 @@ export const useGameSocket = ({ socket, roomState, setRoomState, setIncomingEmoj
             });
         });
 
-        socket.on('emojiThrown', ({ toPlayerId, emoji }: { toPlayerId: string; emoji: string }) => {
+        socket.on('emojiThrown', ({ fromPlayerId, toPlayerId, emoji }: { fromPlayerId: string; toPlayerId: string; emoji: string }) => {
+            // Ignore own emojis as they are handled optimistically
+            if (fromPlayerId === socket.id) return;
+
             const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            setIncomingEmojis((prev: IncomingEmoji[]) => [...prev, { toPlayerId, emoji, id }]);
+            setIncomingEmojis((prev: IncomingEmoji[]) => {
+                const updated = [...prev, { toPlayerId, emoji, id }];
+                // Cap list size to 20 to prevent performance issues
+                return updated.slice(-20);
+            });
         });
 
         return () => {
@@ -130,8 +137,16 @@ export const useGameSocket = ({ socket, roomState, setRoomState, setIncomingEmoj
 
     const throwEmoji = useCallback((toPlayerId: string, emoji: string) => {
         if (!socket) return;
+
+        // Optimistic update
+        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        setIncomingEmojis((prev: IncomingEmoji[]) => {
+            const updated = [...prev, { toPlayerId, emoji, id }];
+            return updated.slice(-20);
+        });
+
         socket.emit('throwEmoji', { toPlayerId, emoji });
-    }, [socket]);
+    }, [socket, setIncomingEmojis]);
 
     return { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji };
 };
