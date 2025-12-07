@@ -1,32 +1,7 @@
-export type CardValue = '1' | '2' | '3' | '5' | '8' | '13';
+import { Story, JiraConfig, Player, RoomState, CardValue } from '@taking5/shared';
 
-// Story types for Jira integration
-export interface Story {
-  id: string;
-  key?: string;           // Jira issue key (e.g., "PROJ-123")
-  summary: string;
-  storyPoints?: number;
-  url?: string;           // Jira issue URL
-  isManual: boolean;      // true if added manually, false if from Jira
-  voted: boolean;         // true if story has been estimated
-}
-
-export interface JiraConfig {
-  baseUrl: string;
-  email: string;
-  apiToken: string;
-  storyPointsFieldId?: string;
-}
-
-export interface Player {
-  id: string;
-  name: string;
-  selectedCard: CardValue | null;
-  hasVoted: boolean;
-  isModerator: boolean;
-  isObserver: boolean;
-  avatarUrl: string | null;
-}
+// Re-export common types
+export { Story, JiraConfig, Player, RoomState, CardValue };
 
 export interface Room {
   code: string;
@@ -39,7 +14,7 @@ export interface Room {
 }
 
 export interface ServerToClientEvents {
-  roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId?: string; jiraConnected: boolean }) => void;
+  roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId: string | null; jiraConnected: boolean }) => void;
   playerJoined: (player: Player) => void;
   playerLeft: (playerId: string) => void;
   cardSelected: (data: { playerId: string; hasVoted: boolean }) => void;
@@ -48,16 +23,14 @@ export interface ServerToClientEvents {
   observerToggled: (data: { playerId: string; isObserver: boolean }) => void;
   avatarUpdated: (data: { playerId: string; avatarUrl: string | null }) => void;
   emojiThrown: (data: { fromPlayerId: string; toPlayerId: string; emoji: string }) => void;
-  error: (message: string) => void;
-  // Story events
   storyAdded: (story: Story) => void;
   storiesUpdated: (stories: Story[]) => void;
   storySelected: (data: { storyId: string; story: Story | null }) => void;
   storyPointsApplied: (data: { storyId: string; points: number }) => void;
-  // Jira events
   jiraConfigured: (data: { baseUrl: string }) => void;
   jiraDisconnected: () => void;
   jiraError: (data: { code: string; message: string }) => void;
+  error: (message: string) => void;
 }
 
 export interface ClientToServerEvents {
@@ -69,14 +42,16 @@ export interface ClientToServerEvents {
   toggleObserver: () => void;
   updateAvatar: (avatarUrl: string | null) => void;
   throwEmoji: (data: { toPlayerId: string; emoji: string }) => void;
-  // Story events (moderator only)
+
+  // Story events
   addManualStory: (summary: string) => void;
   removeStory: (storyId: string) => void;
   selectStory: (storyId: string | null) => void;
   applyStoryPoints: (data: { storyId: string; points: number }) => void;
   clearStories: () => void;
-  // Jira events (moderator only)
-  configureJira: (config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => void;
+
+  // Jira events
+  configureJira: (config: JiraConfig) => void;
   disconnectJira: () => void;
   addStoryByLink: (url: string) => void;
   fetchJiraStories: (jql: string) => void;
