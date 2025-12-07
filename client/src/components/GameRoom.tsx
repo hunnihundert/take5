@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { RoomState, CardValue, Player } from '../types';
+import { useState, useRef, useCallback, useEffect, ChangeEvent } from 'react';
+import { Player } from '../types';
 import PokerTable from './PokerTable';
 import CardDeck from './CardDeck';
 import AvatarEditor from './AvatarEditor';
@@ -11,36 +11,31 @@ import ActiveStoryBanner from './ActiveStoryBanner';
 import JiraConfigModal from './JiraConfigModal';
 import JqlImportSection from './JqlImportSection';
 import ApplyPointsDialog from './ApplyPointsDialog';
+import { useGameContext } from '../context/GameContext';
 
-interface IncomingEmoji {
-  toPlayerId: string;
-  emoji: string;
-  id: string;
-}
+const GameRoom = () => {
+  const {
+    roomState,
+    selectCard,
+    revealCards,
+    startNewRound,
+    toggleObserver,
+    updateAvatar,
+    throwEmoji,
+    incomingEmojis,
+    removeIncomingEmoji,
+    addManualStory,
+    removeStory,
+    selectStory,
+    applyStoryPoints,
+    clearStories,
+    configureJira,
+    disconnectJira,
+    addStoryByLink,
+    fetchJiraStories,
+    refreshJiraStories
+  } = useGameContext();
 
-interface GameRoomProps {
-  roomState: RoomState;
-  onSelectCard: (cardValue: CardValue) => void;
-  onRevealCards: () => void;
-  onNewRound: () => void;
-  onToggleObserver: () => void;
-  onUpdateAvatar: (avatarUrl: string | null) => void;
-  onThrowEmoji: (toPlayerId: string, emoji: string) => void;
-  incomingEmojis: IncomingEmoji[];
-  onRemoveIncomingEmoji: (id: string) => void;
-  onAddManualStory: (summary: string) => void;
-  onRemoveStory: (storyId: string) => void;
-  onSelectStory: (storyId: string | null) => void;
-  onApplyStoryPoints: (storyId: string, points: number) => void;
-  onClearStories: () => void;
-  onConfigureJira: (config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => void;
-  onDisconnectJira: () => void;
-  onAddStoryByLink: (url: string) => void;
-  onFetchJiraStories: (jql: string) => void;
-  onRefreshJiraStories: () => void;
-}
-
-const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggleObserver, onUpdateAvatar, onThrowEmoji, incomingEmojis, onRemoveIncomingEmoji, onAddManualStory, onRemoveStory, onSelectStory, onApplyStoryPoints, onClearStories, onConfigureJira, onDisconnectJira, onAddStoryByLink, onFetchJiraStories, onRefreshJiraStories }: GameRoomProps) => {
   const { roomCode, currentPlayer, players, revealed, stories, activeStory, jiraConnected } = roomState;
   const [copied, setCopied] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
@@ -72,9 +67,9 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
       }
 
       // Remove from parent after processing
-      onRemoveIncomingEmoji(incomingEmoji.id);
+      removeIncomingEmoji(incomingEmoji.id);
     });
-  }, [incomingEmojis, addEmoji, onRemoveIncomingEmoji]);
+  }, [incomingEmojis, addEmoji, removeIncomingEmoji]);
 
   // Show ApplyPointsDialog when cards are revealed with an active story
   useEffect(() => {
@@ -99,7 +94,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
     fileInputRef.current?.click();
   };
 
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -129,7 +124,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
   };
 
   const handleAvatarSave = (croppedImage: string) => {
-    onUpdateAvatar(croppedImage);
+    updateAvatar(croppedImage);
     setShowAvatarEditor(false);
     setSelectedImageUrl('');
   };
@@ -140,7 +135,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
   };
 
   const handleRemoveAvatar = () => {
-    onUpdateAvatar(null);
+    updateAvatar(null);
   };
 
   // Emoji throwing handlers
@@ -166,10 +161,10 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
 
   const handleEmojiSelect = useCallback((emoji: string) => {
     if (emojiPicker) {
-      onThrowEmoji(emojiPicker.playerId, emoji);
+      throwEmoji(emojiPicker.playerId, emoji);
       // Don't close the picker - user can keep throwing emojis or click outside to close
     }
-  }, [emojiPicker, onThrowEmoji]);
+  }, [emojiPicker, throwEmoji]);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -247,12 +242,11 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
             </div>
             <div className="flex items-center gap-4">
               <button
-                onClick={onToggleObserver}
-                className={`px-4 py-2 rounded-lg font-semibold transition duration-200 ${
-                  currentPlayer?.isObserver
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                }`}
+                onClick={toggleObserver}
+                className={`px-4 py-2 rounded-lg font-semibold transition duration-200 ${currentPlayer?.isObserver
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
               >
                 {currentPlayer?.isObserver ? 'Aktiv teilnehmen' : 'Beobachter-Modus'}
               </button>
@@ -279,7 +273,8 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
                       </svg>
                       <span className="text-sm font-medium">Link kopieren</span>
                     </>
-                  )}
+                  )
+                  }
                 </button>
               </div>
             </div>
@@ -314,19 +309,19 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
               activeStory={activeStory}
               isModerator={currentPlayer?.isModerator || false}
               jiraConnected={jiraConnected}
-              onSelectStory={onSelectStory}
-              onRemoveStory={onRemoveStory}
-              onAddManualStory={onAddManualStory}
-              onClearStories={onClearStories}
-              onAddStoryByLink={onAddStoryByLink}
+              onSelectStory={selectStory}
+              onRemoveStory={removeStory}
+              onAddManualStory={addManualStory}
+              onClearStories={clearStories}
+              onAddStoryByLink={addStoryByLink}
               onOpenJiraConfig={() => setShowJiraConfig(true)}
             />
 
             {/* JQL Import Section (Moderator only, when Jira connected) */}
             {currentPlayer?.isModerator && jiraConnected && (
               <JqlImportSection
-                onFetchStories={onFetchJiraStories}
-                onRefresh={onRefreshJiraStories}
+                onFetchStories={fetchJiraStories}
+                onRefresh={refreshJiraStories}
                 jiraConnected={jiraConnected}
               />
             )}
@@ -343,7 +338,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
               </h2>
               <CardDeck
                 selectedCard={currentPlayer?.selectedCard || null}
-                onSelectCard={onSelectCard}
+                onSelectCard={selectCard}
                 disabled={revealed}
               />
             </div>
@@ -372,7 +367,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
               <div className="flex flex-col sm:flex-row gap-3">
                 {!revealed && (
                   <button
-                    onClick={onRevealCards}
+                    onClick={revealCards}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                   >
                     Karten aufdecken
@@ -380,7 +375,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
                 )}
                 {revealed && (
                   <button
-                    onClick={onNewRound}
+                    onClick={startNewRound}
                     className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                   >
                     Neue Runde starten
@@ -429,8 +424,8 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
       <JiraConfigModal
         isOpen={showJiraConfig}
         onClose={() => setShowJiraConfig(false)}
-        onConnect={onConfigureJira}
-        onDisconnect={onDisconnectJira}
+        onConnect={configureJira}
+        onDisconnect={disconnectJira}
         isConnected={jiraConnected}
       />
 
@@ -440,7 +435,7 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
         story={activeStory}
         players={players}
         revealed={revealed}
-        onApplyPoints={onApplyStoryPoints}
+        onApplyPoints={applyStoryPoints}
         onSkip={() => setShowApplyPoints(false)}
         onClose={() => setShowApplyPoints(false)}
       />
@@ -448,6 +443,6 @@ const GameRoom = ({ roomState, onSelectCard, onRevealCards, onNewRound, onToggle
   );
 };
 
-// Export the component with a way to receive incoming emojis
 export default GameRoom;
-export type { GameRoomProps };
+
+
