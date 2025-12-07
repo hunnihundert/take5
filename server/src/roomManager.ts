@@ -1,8 +1,15 @@
 import { Room, Player, CardValue, Story, JiraConfig } from './types';
 import { randomUUID } from 'crypto';
+import { logger } from './utils/logger';
+
+export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
+
+  private normalizeRoomCode(code: string): string {
+    return code.toUpperCase();
+  }
 
   generateRoomCode(): string {
     let code: string;
@@ -12,7 +19,7 @@ export class RoomManager {
     return code;
   }
 
-  createRoom(playerName: string, playerId: string): { room: Room; player: Player } {
+  createRoom(playerName: string, playerId: string): Result<{ room: Room; player: Player }> {
     const code = this.generateRoomCode();
 
     const player: Player = {
@@ -36,13 +43,16 @@ export class RoomManager {
     };
 
     this.rooms.set(code, room);
-    return { room, player };
+    logger.info(`Room created: ${code} by player ${playerName} (${playerId})`);
+    return { success: true, data: { room, player } };
   }
 
-  joinRoom(roomCode: string, playerName: string, playerId: string): { room: Room; player: Player; error?: string } | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+  joinRoom(roomCode: string, playerName: string, playerId: string): Result<{ room: Room; player: Player }> {
+    const normalizedCode = this.normalizeRoomCode(roomCode);
+    const room = this.rooms.get(normalizedCode);
+
     if (!room) {
-      return null;
+      return { success: false, error: 'Raum nicht gefunden' };
     }
 
     // Check if name already exists in the room
@@ -51,7 +61,7 @@ export class RoomManager {
     );
 
     if (nameExists) {
-      return { room, player: null as any, error: 'Dieser Name wird bereits verwendet' };
+      return { success: false, error: 'Dieser Name wird bereits verwendet' };
     }
 
     const player: Player = {
@@ -65,15 +75,17 @@ export class RoomManager {
     };
 
     room.players.set(playerId, player);
-    return { room, player };
+    logger.info(`Player ${playerName} (${playerId}) joined room ${normalizedCode}`);
+    return { success: true, data: { room, player } };
   }
 
   getRoom(roomCode: string): Room | undefined {
-    return this.rooms.get(roomCode.toUpperCase());
+    return this.rooms.get(this.normalizeRoomCode(roomCode));
   }
 
   removePlayer(roomCode: string, playerId: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const normalizedCode = this.normalizeRoomCode(roomCode);
+    const room = this.rooms.get(normalizedCode);
     if (!room) {
       return false;
     }
@@ -82,13 +94,15 @@ export class RoomManager {
 
     // Delete room if empty
     if (room.players.size === 0) {
-      this.rooms.delete(roomCode.toUpperCase());
+      this.rooms.delete(normalizedCode);
+      logger.info(`Room ${normalizedCode} deleted (empty)`);
     } else {
       // If moderator left, assign new moderator
       const hasModerator = Array.from(room.players.values()).some(p => p.isModerator);
       if (!hasModerator) {
         const firstPlayer = Array.from(room.players.values())[0];
         firstPlayer.isModerator = true;
+        logger.info(`New moderator assigned in room ${normalizedCode}: ${firstPlayer.name}`);
       }
     }
 
@@ -96,15 +110,11 @@ export class RoomManager {
   }
 
   selectCard(roomCode: string, playerId: string, cardValue: CardValue): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room) {
-      return false;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room) return false;
 
     const player = room.players.get(playerId);
-    if (!player) {
-      return false;
-    }
+    if (!player) return false;
 
     player.selectedCard = cardValue;
     player.hasVoted = true;
@@ -112,20 +122,16 @@ export class RoomManager {
   }
 
   revealCards(roomCode: string): Room | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room) {
-      return null;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
 
     room.revealed = true;
     return room;
   }
 
   startNewRound(roomCode: string): Room | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room) {
-      return null;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
 
     room.revealed = false;
     room.players.forEach(player => {
@@ -137,31 +143,23 @@ export class RoomManager {
   }
 
   allPlayersVoted(roomCode: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room || room.players.size === 0) {
-      return false;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room || room.players.size === 0) return false;
 
     // Filter out observers
     const activePlayers = Array.from(room.players.values()).filter(p => !p.isObserver);
 
-    if (activePlayers.length === 0) {
-      return false;
-    }
+    if (activePlayers.length === 0) return false;
 
     return activePlayers.every(player => player.hasVoted);
   }
 
   toggleObserver(roomCode: string, playerId: string): Player | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room) {
-      return null;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
 
     const player = room.players.get(playerId);
-    if (!player) {
-      return null;
-    }
+    if (!player) return null;
 
     player.isObserver = !player.isObserver;
 
@@ -175,15 +173,11 @@ export class RoomManager {
   }
 
   updateAvatar(roomCode: string, playerId: string, avatarUrl: string | null): Player | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
-    if (!room) {
-      return null;
-    }
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
 
     const player = room.players.get(playerId);
-    if (!player) {
-      return null;
-    }
+    if (!player) return null;
 
     player.avatarUrl = avatarUrl;
     return player;
@@ -196,14 +190,14 @@ export class RoomManager {
   // Story management methods
 
   isModerator(roomCode: string, playerId: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return false;
     const player = room.players.get(playerId);
     return player?.isModerator ?? false;
   }
 
   addManualStory(roomCode: string, summary: string): Story | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return null;
 
     const story: Story = {
@@ -218,7 +212,7 @@ export class RoomManager {
   }
 
   addJiraStory(roomCode: string, jiraStory: Omit<Story, 'id' | 'isManual' | 'voted'>): Story | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return null;
 
     // Check for duplicates by key
@@ -238,7 +232,7 @@ export class RoomManager {
   }
 
   removeStory(roomCode: string, storyId: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return false;
 
     const index = room.stories.findIndex(s => s.id === storyId);
@@ -255,7 +249,7 @@ export class RoomManager {
   }
 
   selectStory(roomCode: string, storyId: string | null): Story | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return null;
 
     if (storyId === null) {
@@ -271,13 +265,13 @@ export class RoomManager {
   }
 
   getActiveStory(roomCode: string): Story | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room || !room.activeStoryId) return null;
     return room.stories.find(s => s.id === room.activeStoryId) || null;
   }
 
   applyStoryPoints(roomCode: string, storyId: string, points: number): Story | null {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return null;
 
     const story = room.stories.find(s => s.id === storyId);
@@ -289,7 +283,7 @@ export class RoomManager {
   }
 
   clearStories(roomCode: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return false;
 
     room.stories = [];
@@ -298,7 +292,7 @@ export class RoomManager {
   }
 
   getStories(roomCode: string): Story[] {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return [];
     return room.stories;
   }
@@ -306,7 +300,7 @@ export class RoomManager {
   // Jira configuration methods
 
   setJiraConfig(roomCode: string, config: JiraConfig): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return false;
 
     room.jiraConfig = config;
@@ -314,12 +308,12 @@ export class RoomManager {
   }
 
   getJiraConfig(roomCode: string): JiraConfig | undefined {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     return room?.jiraConfig;
   }
 
   clearJiraConfig(roomCode: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     if (!room) return false;
 
     room.jiraConfig = undefined;
@@ -327,7 +321,7 @@ export class RoomManager {
   }
 
   hasJiraConfig(roomCode: string): boolean {
-    const room = this.rooms.get(roomCode.toUpperCase());
+    const room = this.getRoom(roomCode);
     return room?.jiraConfig !== undefined;
   }
 }
