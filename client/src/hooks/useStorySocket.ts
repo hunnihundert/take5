@@ -12,10 +12,17 @@ export const useStorySocket = ({ socket, setRoomState }: UseStorySocketProps) =>
         if (!socket) return;
 
         socket.on('storyAdded', (story: Story) => {
-            setRoomState((prev: RoomState) => ({
-                ...prev,
-                stories: [...prev.stories, story]
-            }));
+            setRoomState((prev: RoomState) => {
+                // Remove any temporary optimistic story with the same summary
+                const filteredStories = prev.stories.filter(s =>
+                    !(s.id.startsWith('temp-') && s.summary === story.summary)
+                );
+
+                return {
+                    ...prev,
+                    stories: [...filteredStories, story]
+                };
+            });
         });
 
         socket.on('storiesUpdated', (stories: Story[]) => {
@@ -61,8 +68,23 @@ export const useStorySocket = ({ socket, setRoomState }: UseStorySocketProps) =>
 
     const addManualStory = useCallback((summary: string) => {
         if (!socket) return;
+
+        // Optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const tempStory: Story = {
+            id: tempId,
+            summary,
+            isManual: true,
+            voted: false
+        };
+
+        setRoomState((prev) => ({
+            ...prev,
+            stories: [...prev.stories, tempStory]
+        }));
+
         socket.emit('addManualStory', summary);
-    }, [socket]);
+    }, [socket, setRoomState]);
 
     const removeStory = useCallback((storyId: string) => {
         if (!socket) return;
