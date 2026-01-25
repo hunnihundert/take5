@@ -20,12 +20,12 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         }
 
         // Store the config
-        roomManager.setJiraConfig(roomCode, config);
+        await roomManager.setJiraConfig(roomCode, config);
         io.to(roomCode).emit('jiraConfigured', { baseUrl: config.baseUrl });
         console.log(`Jira configured for room ${roomCode}: ${config.baseUrl}`);
     });
 
-    socket.on('disconnectJira', () => {
+    socket.on('disconnectJira', async () => {
         const roomCode = socketToRoom.get(socket.id);
         if (!roomCode) return;
 
@@ -34,7 +34,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        roomManager.clearJiraConfig(roomCode);
+        await roomManager.clearJiraConfig(roomCode);
         io.to(roomCode).emit('jiraDisconnected');
         console.log(`Jira disconnected for room ${roomCode}`);
     });
@@ -77,7 +77,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         }
 
         // Add to room (checks for duplicates)
-        const addedStory = roomManager.addJiraStory(roomCode, result.story);
+        const addedStory = await roomManager.addJiraStory(roomCode, result.story);
         if (!addedStory) {
             socket.emit('jiraError', { code: 'DUPLICATE', message: `Story ${parsed.issueKey} ist bereits vorhanden` });
             return;
@@ -110,7 +110,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         // Add all fetched stories
         let addedCount = 0;
         for (const storyData of result.stories) {
-            const addedStory = roomManager.addJiraStory(roomCode, storyData);
+            const addedStory = await roomManager.addJiraStory(roomCode, storyData);
             if (addedStory) {
                 addedCount++;
             }
@@ -148,7 +148,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             if (result.story) {
                 // Update story points if changed
                 if (result.story.storyPoints !== undefined && result.story.storyPoints !== story.storyPoints) {
-                    roomManager.applyStoryPoints(roomCode, story.id, result.story.storyPoints);
+                    await roomManager.applyStoryPoints(roomCode, story.id, result.story.storyPoints);
                 }
             }
         }

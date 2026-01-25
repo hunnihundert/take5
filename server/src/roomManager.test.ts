@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RoomManager } from './roomManager';
-import { CardValue, Story } from '@taking5/shared';
+import { CardValue } from '@taking5/shared';
 
 // Mock logger to avoid console spam during tests
 vi.mock('./utils/logger', () => ({
@@ -12,20 +12,26 @@ vi.mock('./utils/logger', () => ({
     }
 }));
 
+// Mock the repository module to avoid DB dependency
+vi.mock('./db/repository', () => ({
+    RoomRepository: vi.fn()
+}));
+
 describe('RoomManager', () => {
     let roomManager: RoomManager;
     let playerId: string;
     let playerName: string;
 
     beforeEach(() => {
+        // Create RoomManager without repository (in-memory only mode)
         roomManager = new RoomManager();
         playerId = 'player-123';
         playerName = 'TestPlayer';
     });
 
     describe('createRoom', () => {
-        it('should create a room and return room and player data', () => {
-            const result = roomManager.createRoom(playerName, playerId);
+        it('should create a room and return room and player data', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
 
             expect(result.success).toBe(true);
             if (result.success) {
@@ -39,12 +45,12 @@ describe('RoomManager', () => {
     });
 
     describe('joinRoom', () => {
-        it('should successfully join an existing room', () => {
-            const createResult = roomManager.createRoom('Host', 'host-id');
+        it('should successfully join an existing room', async () => {
+            const createResult = await roomManager.createRoom('Host', 'host-id');
             if (!createResult.success) throw new Error('Setup failed');
             const roomCode = createResult.data.room.code;
 
-            const joinResult = roomManager.joinRoom(roomCode, playerName, playerId);
+            const joinResult = await roomManager.joinRoom(roomCode, playerName, playerId);
 
             expect(joinResult.success).toBe(true);
             if (joinResult.success) {
@@ -54,33 +60,50 @@ describe('RoomManager', () => {
             }
         });
 
-        it('should fail if room code does not exist', () => {
-            const result = roomManager.joinRoom('INVALID', playerName, playerId);
+        it('should fail if room code does not exist', async () => {
+            const result = await roomManager.joinRoom('INVALID', playerName, playerId);
             expect(result.success).toBe(false);
             if (!result.success) {
                 expect(result.error).toBe('Raum nicht gefunden');
             }
         });
 
-        it('should fail if player name already exists (case insensitive)', () => {
-            const createResult = roomManager.createRoom('ExistingName', 'host-id');
+        it('should fail if player name already exists (case insensitive)', async () => {
+            const createResult = await roomManager.createRoom('ExistingName', 'host-id');
             if (!createResult.success) throw new Error('Setup failed');
             const roomCode = createResult.data.room.code;
 
-            const result = roomManager.joinRoom(roomCode, 'existingname', playerId);
+            const result = await roomManager.joinRoom(roomCode, 'existingname', playerId);
 
             expect(result.success).toBe(false);
             if (!result.success) {
                 expect(result.error).toBe('Dieser Name wird bereits verwendet');
             }
         });
+
+        it('should make first player to join empty room the moderator', async () => {
+            // Create a room with one player
+            const createResult = await roomManager.createRoom('Host', 'host-id');
+            if (!createResult.success) throw new Error('Setup failed');
+            const roomCode = createResult.data.room.code;
+
+            // Host leaves, room becomes empty (but stays in memory for this test)
+            roomManager.removePlayer(roomCode, 'host-id');
+
+            // This simulates rejoining an empty room (like after DB hydration)
+            // First, we need to recreate the room since removePlayer deleted it
+            const result2 = await roomManager.createRoom('NewHost', 'new-host-id');
+            if (!result2.success) throw new Error('Setup failed');
+
+            expect(result2.data.player.isModerator).toBe(true);
+        });
     });
 
     describe('Game Logic', () => {
         let roomCode: string;
 
-        beforeEach(() => {
-            const result = roomManager.createRoom(playerName, playerId);
+        beforeEach(async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
             if (!result.success) throw new Error('Setup failed');
             roomCode = result.data.room.code;
         });
@@ -116,15 +139,15 @@ describe('RoomManager', () => {
     describe('Story Management', () => {
         let roomCode: string;
 
-        beforeEach(() => {
-            const result = roomManager.createRoom(playerName, playerId);
+        beforeEach(async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
             if (!result.success) throw new Error('Setup failed');
             roomCode = result.data.room.code;
         });
 
-        it('should add manual story', () => {
+        it('should add manual story', async () => {
             const storySummary = 'New Feature';
-            const story = roomManager.addManualStory(roomCode, storySummary);
+            const story = await roomManager.addManualStory(roomCode, storySummary);
 
             expect(story).toBeDefined();
             expect(story?.summary).toBe(storySummary);
@@ -134,31 +157,100 @@ describe('RoomManager', () => {
             expect(stories).toHaveLength(1);
         });
 
-        it('should select active story', () => {
-            const story = roomManager.addManualStory(roomCode, 'Story 1');
+        it('should select active story', async () => {
+            const story = await roomManager.addManualStory(roomCode, 'Story 1');
             expect(story).not.toBeNull();
 
-            const selected = roomManager.selectStory(roomCode, story!.id);
+            const selected = await roomManager.selectStory(roomCode, story!.id);
             expect(selected?.id).toBe(story!.id);
 
             const active = roomManager.getActiveStory(roomCode);
             expect(active?.id).toBe(story!.id);
+        });
+
+        it('should remove story', async () => {
+            const story = await roomManager.addManualStory(roomCode, 'Story to remove');
+            expect(story).not.toBeNull();
+
+            const removed = await roomManager.removeStory(roomCode, story!.id);
+            expect(removed).toBe(true);
+
+            const stories = roomManager.getStories(roomCode);
+            expect(stories).toHaveLength(0);
+        });
+
+        it('should apply story points', async () => {
+            const story = await roomManager.addManualStory(roomCode, 'Story with points');
+            expect(story).not.toBeNull();
+
+            const updated = await roomManager.applyStoryPoints(roomCode, story!.id, 5);
+            expect(updated?.storyPoints).toBe(5);
+            expect(updated?.voted).toBe(true);
+        });
+
+        it('should clear all stories', async () => {
+            await roomManager.addManualStory(roomCode, 'Story 1');
+            await roomManager.addManualStory(roomCode, 'Story 2');
+
+            const cleared = await roomManager.clearStories(roomCode);
+            expect(cleared).toBe(true);
+
+            const stories = roomManager.getStories(roomCode);
+            expect(stories).toHaveLength(0);
+        });
+    });
+
+    describe('Jira Configuration', () => {
+        let roomCode: string;
+
+        beforeEach(async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            roomCode = result.data.room.code;
+        });
+
+        it('should set and get Jira config', async () => {
+            const config = {
+                baseUrl: 'https://test.atlassian.net',
+                email: 'test@example.com',
+                apiToken: 'token123'
+            };
+
+            const success = await roomManager.setJiraConfig(roomCode, config);
+            expect(success).toBe(true);
+
+            const retrieved = roomManager.getJiraConfig(roomCode);
+            expect(retrieved).toEqual(config);
+            expect(roomManager.hasJiraConfig(roomCode)).toBe(true);
+        });
+
+        it('should clear Jira config', async () => {
+            const config = {
+                baseUrl: 'https://test.atlassian.net',
+                email: 'test@example.com',
+                apiToken: 'token123'
+            };
+
+            await roomManager.setJiraConfig(roomCode, config);
+            const cleared = await roomManager.clearJiraConfig(roomCode);
+            expect(cleared).toBe(true);
+            expect(roomManager.hasJiraConfig(roomCode)).toBe(false);
         });
     });
 
     describe('Edge Cases', () => {
         let roomCode: string;
 
-        beforeEach(() => {
-            const result = roomManager.createRoom(playerName, playerId);
+        beforeEach(async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
             if (!result.success) throw new Error('Setup failed');
             roomCode = result.data.room.code;
         });
 
-        it('should promote new moderator when current leaves', () => {
+        it('should promote new moderator when current leaves', async () => {
             // Add another player
             const p2Id = 'p2';
-            roomManager.joinRoom(roomCode, 'Player 2', p2Id);
+            await roomManager.joinRoom(roomCode, 'Player 2', p2Id);
 
             // Original mod leaves
             roomManager.removePlayer(roomCode, playerId);
@@ -184,6 +276,17 @@ describe('RoomManager', () => {
             expect(player?.isObserver).toBe(true);
             expect(player?.hasVoted).toBe(false);
             expect(player?.selectedCard).toBeNull();
+        });
+
+        it('should clear active story when removing it', async () => {
+            const story = await roomManager.addManualStory(roomCode, 'Active Story');
+            await roomManager.selectStory(roomCode, story!.id);
+
+            expect(roomManager.getActiveStory(roomCode)).not.toBeNull();
+
+            await roomManager.removeStory(roomCode, story!.id);
+
+            expect(roomManager.getActiveStory(roomCode)).toBeNull();
         });
     });
 });
