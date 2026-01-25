@@ -44,14 +44,25 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
             }));
         });
 
-        socket.on('playerLeft', (playerId: string) => {
+        socket.on('playerLeft', ({ playerId, newModeratorId }: { playerId: string; newModeratorId?: string }) => {
             setRoomState((prev: RoomState) => {
-                const updatedPlayers = prev.players.filter((p: Player) => p.id !== playerId);
+                // Remove the player who left
+                let updatedPlayers = prev.players.filter((p: Player) => p.id !== playerId);
 
-                // Check if current player became moderator
-                const updatedCurrentPlayer = prev.currentPlayer
-                    ? updatedPlayers.find((p: Player) => p.id === prev.currentPlayer!.id) || prev.currentPlayer
-                    : null;
+                // Update moderator status if a new moderator was assigned
+                if (newModeratorId) {
+                    updatedPlayers = updatedPlayers.map((p: Player) =>
+                        p.id === newModeratorId ? { ...p, isModerator: true } : p
+                    );
+                }
+
+                // Update current player's moderator status if they became the new moderator
+                let updatedCurrentPlayer = prev.currentPlayer;
+                if (prev.currentPlayer) {
+                    if (newModeratorId && prev.currentPlayer.id === newModeratorId) {
+                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: true };
+                    }
+                }
 
                 return {
                     ...prev,

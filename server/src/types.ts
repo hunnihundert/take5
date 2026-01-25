@@ -16,7 +16,7 @@ export interface Room {
 export interface ServerToClientEvents {
   roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId: string | null; jiraConnected: boolean }) => void;
   playerJoined: (player: Player) => void;
-  playerLeft: (playerId: string) => void;
+  playerLeft: (data: { playerId: string; newModeratorId?: string }) => void;
   cardSelected: (data: { playerId: string; hasVoted: boolean }) => void;
   cardsRevealed: (players: Player[]) => void;
   newRound: () => void;

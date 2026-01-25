@@ -81,8 +81,13 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     socket.on('disconnect', () => {
         const roomCode = socketToRoom.get(socket.id);
         if (roomCode) {
-            roomManager.removePlayer(roomCode, socket.id);
-            socket.to(roomCode).emit('playerLeft', socket.id);
+            const result = roomManager.removePlayer(roomCode, socket.id);
+            if (result.removed) {
+                socket.to(roomCode).emit('playerLeft', {
+                    playerId: socket.id,
+                    newModeratorId: result.newModerator?.id
+                });
+            }
             socketToRoom.delete(socket.id);
             console.log(`Player ${socket.id} left room ${roomCode}`);
         }

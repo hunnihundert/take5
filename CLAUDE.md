@@ -21,6 +21,9 @@ npm run build           # Builds both client and server
 
 # Start production server
 npm start               # Runs server from dist/
+
+# Tests
+npm run test --workspace=server   # Run server tests (vitest)
 ```
 
 ## Architecture
@@ -28,13 +31,22 @@ npm start               # Runs server from dist/
 ### Monorepo Structure
 - **`/client`** - React 18 + Vite + Tailwind CSS frontend
 - **`/server`** - Express + Socket.io backend
+- **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig interfaces
 
 ### Real-time Communication
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client → Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`
+**Client → Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`
 
-**Server → Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `error`
+**Client → Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
+
+**Client → Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
+
+**Server → Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
+
+**Server → Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
+
+**Server → Client (Jira):** `jiraConfigured`, `jiraDisconnected`, `jiraError`
 
 ### State Management
 - **Backend:** In-memory `Map<string, Room>` in `RoomManager` class - no database, all state is ephemeral
@@ -43,8 +55,10 @@ Socket.io handles all game state synchronization. Key event patterns:
 ### Key Files
 - `server/src/roomManager.ts` - Core game logic (room creation, player management, voting)
 - `server/src/index.ts` - Express server and Socket.io event handlers
+- `server/src/services/jiraService.ts` - Jira API integration for story import/sync
 - `client/src/hooks/useSocket.ts` - Socket connection management
 - `client/src/components/GameRoom.tsx` - Main game interface
+- `shared/src/index.ts` - Shared TypeScript interfaces (Player, Story, RoomState, JiraConfig)
 
 ## Environment Variables
 
@@ -63,3 +77,4 @@ Socket.io handles all game state synchronization. Key event patterns:
 - **Moderator:** First player becomes moderator; auto-reassigns on disconnect
 - **Auto-reveal:** Cards reveal automatically when all non-observer players vote
 - **Consensus:** Confetti animation triggers when all players select the same card
+- **Jira Integration:** Stories can be imported via URL or JQL; story points sync back to Jira
