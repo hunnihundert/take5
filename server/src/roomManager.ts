@@ -83,11 +83,11 @@ export class RoomManager {
     return this.rooms.get(this.normalizeRoomCode(roomCode));
   }
 
-  removePlayer(roomCode: string, playerId: string): boolean {
+  removePlayer(roomCode: string, playerId: string): { removed: boolean; newModerator?: Player } {
     const normalizedCode = this.normalizeRoomCode(roomCode);
     const room = this.rooms.get(normalizedCode);
     if (!room) {
-      return false;
+      return { removed: false };
     }
 
     room.players.delete(playerId);
@@ -96,17 +96,19 @@ export class RoomManager {
     if (room.players.size === 0) {
       this.rooms.delete(normalizedCode);
       logger.info(`Room ${normalizedCode} deleted (empty)`);
-    } else {
-      // If moderator left, assign new moderator
-      const hasModerator = Array.from(room.players.values()).some(p => p.isModerator);
-      if (!hasModerator) {
-        const firstPlayer = Array.from(room.players.values())[0];
-        firstPlayer.isModerator = true;
-        logger.info(`New moderator assigned in room ${normalizedCode}: ${firstPlayer.name}`);
-      }
+      return { removed: true };
     }
 
-    return true;
+    // If moderator left, assign new moderator
+    const hasModerator = Array.from(room.players.values()).some(p => p.isModerator);
+    if (!hasModerator) {
+      const firstPlayer = Array.from(room.players.values())[0];
+      firstPlayer.isModerator = true;
+      logger.info(`New moderator assigned in room ${normalizedCode}: ${firstPlayer.name}`);
+      return { removed: true, newModerator: firstPlayer };
+    }
+
+    return { removed: true };
   }
 
   selectCard(roomCode: string, playerId: string, cardValue: CardValue): boolean {
