@@ -9,7 +9,7 @@ import { roomHandler } from './handlers/roomHandler';
 import { gameHandler } from './handlers/gameHandler';
 import { storyHandler } from './handlers/storyHandler';
 import { jiraHandler } from './handlers/jiraHandler';
-import { initDatabase, isDatabaseEnabled } from './db';
+import { initDatabase, isDatabaseEnabled, syncSchema } from './db';
 import { RoomRepository } from './db/repository';
 
 const app = express();
@@ -50,6 +50,9 @@ app.get('/api/health', (req, res) => {
 async function startServer() {
   // Initialize database connection
   await initDatabase();
+
+  // Ensure database tables exist
+  await syncSchema();
 
   // Create repository if database is enabled
   const repository = isDatabaseEnabled() ? new RoomRepository() : undefined;
