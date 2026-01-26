@@ -4,10 +4,8 @@ export const rooms = pgTable('rooms', {
     code: varchar('code', { length: 6 }).primaryKey(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     activeStoryId: uuid('active_story_id'),
-    jiraBaseUrl: varchar('jira_base_url', { length: 255 }),
-    jiraEmail: varchar('jira_email', { length: 255 }),
-    jiraApiToken: varchar('jira_api_token', { length: 500 }),
-    jiraStoryPointsFieldId: varchar('jira_story_points_field_id', { length: 100 }),
+    // Jira config is intentionally not persisted - tokens should not be stored in the database
+    // Users must re-configure Jira when rejoining a room
 });
 
 export const stories = pgTable('stories', {

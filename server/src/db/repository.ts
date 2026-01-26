@@ -113,30 +113,10 @@ export class RoomRepository {
             .where(eq(rooms.code, roomCode));
     }
 
-    async setJiraConfig(roomCode: string, config: JiraConfig | undefined): Promise<void> {
-        if (!isDatabaseEnabled()) return;
-
-        const db = getDb();
-
-        if (config) {
-            await db.update(rooms)
-                .set({
-                    jiraBaseUrl: config.baseUrl,
-                    jiraEmail: config.email,
-                    jiraApiToken: config.apiToken,
-                    jiraStoryPointsFieldId: config.storyPointsFieldId,
-                })
-                .where(eq(rooms.code, roomCode));
-        } else {
-            await db.update(rooms)
-                .set({
-                    jiraBaseUrl: null,
-                    jiraEmail: null,
-                    jiraApiToken: null,
-                    jiraStoryPointsFieldId: null,
-                })
-                .where(eq(rooms.code, roomCode));
-        }
+    async setJiraConfig(_roomCode: string, _config: JiraConfig | undefined): Promise<void> {
+        // Jira config is intentionally not persisted to avoid storing API tokens in the database
+        // Config is kept in-memory only and must be re-entered when rejoining a room
+        return;
     }
 
     private hydrateRoom(room: RoomRecord, storyRecords: StoryRecord[]): DbRoom {
@@ -150,20 +130,13 @@ export class RoomRepository {
             voted: s.voted,
         }));
 
-        const jiraConfig: JiraConfig | undefined = room.jiraBaseUrl && room.jiraEmail && room.jiraApiToken
-            ? {
-                baseUrl: room.jiraBaseUrl,
-                email: room.jiraEmail,
-                apiToken: room.jiraApiToken,
-                storyPointsFieldId: room.jiraStoryPointsFieldId ?? undefined,
-            }
-            : undefined;
-
+        // Jira config is not persisted (security: no tokens in DB)
+        // Users must re-configure Jira when rejoining a room
         return {
             code: room.code,
             createdAt: room.createdAt,
             activeStoryId: room.activeStoryId,
-            jiraConfig,
+            jiraConfig: undefined,
             stories: storyList,
         };
     }
