@@ -4,11 +4,13 @@ import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
 import { RoomManager } from './roomManager';
-import { ServerToClientEvents, ClientToServerEvents, CardValue, JiraConfig } from './types';
+import { ServerToClientEvents, ClientToServerEvents } from './types';
 import { roomHandler } from './handlers/roomHandler';
 import { gameHandler } from './handlers/gameHandler';
 import { storyHandler } from './handlers/storyHandler';
 import { jiraHandler } from './handlers/jiraHandler';
+import { initDatabase, isDatabaseEnabled } from './db';
+import { RoomRepository } from './db/repository';
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,32 +40,50 @@ app.use(express.static(clientDistPath));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    database: isDatabaseEnabled() ? 'connected' : 'disabled'
+  });
 });
 
-const roomManager = new RoomManager();
-const socketToRoom = new Map<string, string>();
+async function startServer() {
+  // Initialize database connection
+  await initDatabase();
 
-io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
-  console.log('Client connected:', socket.id);
+  // Create repository if database is enabled
+  const repository = isDatabaseEnabled() ? new RoomRepository() : undefined;
 
-  // Register all handlers
-  roomHandler(io, socket, roomManager, socketToRoom);
-  gameHandler(io, socket, roomManager, socketToRoom);
-  storyHandler(io, socket, roomManager, socketToRoom);
-  jiraHandler(io, socket, roomManager, socketToRoom);
-});
+  // Create room manager with optional repository
+  const roomManager = new RoomManager(repository);
+  const socketToRoom = new Map<string, string>();
 
+  io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
+    console.log('Client connected:', socket.id);
 
-// Catch-all route to serve React app for any non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
+    // Register all handlers
+    roomHandler(io, socket, roomManager, socketToRoom);
+    gameHandler(io, socket, roomManager, socketToRoom);
+    storyHandler(io, socket, roomManager, socketToRoom);
+    jiraHandler(io, socket, roomManager, socketToRoom);
+  });
 
-const PORT = process.env.PORT || 3001;
+  // Catch-all route to serve React app for any non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+  const PORT = process.env.PORT || 3001;
+
+  httpServer.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+    console.log(`Database: ${isDatabaseEnabled() ? 'connected' : 'disabled (no DATABASE_URL)'}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });

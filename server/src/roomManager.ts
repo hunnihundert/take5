@@ -1,26 +1,44 @@
 import { Room, Player, CardValue, Story, JiraConfig } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
+import { RoomRepository } from './db/repository';
 
 export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
+  private repository: RoomRepository | null;
+
+  constructor(repository?: RoomRepository) {
+    this.repository = repository ?? null;
+  }
 
   private normalizeRoomCode(code: string): string {
     return code.toUpperCase();
   }
 
-  generateRoomCode(): string {
+  async generateRoomCode(): Promise<string> {
     let code: string;
+    let attempts = 0;
+    const maxAttempts = 100;
+
     do {
       code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    } while (this.rooms.has(code));
-    return code;
+      // Check memory first, then DB
+      const inMemory = this.rooms.has(code);
+      const inDb = this.repository ? await this.repository.roomExists(code) : false;
+
+      if (!inMemory && !inDb) {
+        return code;
+      }
+      attempts++;
+    } while (attempts < maxAttempts);
+
+    throw new Error('Failed to generate unique room code');
   }
 
-  createRoom(playerName: string, playerId: string): Result<{ room: Room; player: Player }> {
-    const code = this.generateRoomCode();
+  async createRoom(playerName: string, playerId: string): Promise<Result<{ room: Room; player: Player }>> {
+    const code = await this.generateRoomCode();
 
     const player: Player = {
       id: playerId,
@@ -42,14 +60,39 @@ export class RoomManager {
       jiraConfig: undefined
     };
 
+    // Persist to DB first
+    if (this.repository) {
+      await this.repository.createRoom(code);
+    }
+
     this.rooms.set(code, room);
     logger.info(`Room created: ${code} by player ${playerName} (${playerId})`);
     return { success: true, data: { room, player } };
   }
 
-  joinRoom(roomCode: string, playerName: string, playerId: string): Result<{ room: Room; player: Player }> {
+  async joinRoom(roomCode: string, playerName: string, playerId: string): Promise<Result<{ room: Room; player: Player }>> {
     const normalizedCode = this.normalizeRoomCode(roomCode);
-    const room = this.rooms.get(normalizedCode);
+    let room = this.rooms.get(normalizedCode);
+
+    // If not in memory, try to load from DB
+    if (!room && this.repository) {
+      const dbRoom = await this.repository.getRoomWithStories(normalizedCode);
+
+      if (dbRoom) {
+        // Hydrate room from DB - empty players Map
+        room = {
+          code: dbRoom.code,
+          players: new Map(),
+          revealed: false,
+          createdAt: dbRoom.createdAt,
+          stories: dbRoom.stories,
+          activeStoryId: dbRoom.activeStoryId ?? undefined,
+          jiraConfig: dbRoom.jiraConfig,
+        };
+        this.rooms.set(normalizedCode, room);
+        logger.info(`Room ${normalizedCode} hydrated from database`);
+      }
+    }
 
     if (!room) {
       return { success: false, error: 'Raum nicht gefunden' };
@@ -64,18 +107,21 @@ export class RoomManager {
       return { success: false, error: 'Dieser Name wird bereits verwendet' };
     }
 
+    // First player to join an empty room becomes moderator
+    const isModerator = room.players.size === 0;
+
     const player: Player = {
       id: playerId,
       name: playerName,
       selectedCard: null,
       hasVoted: false,
-      isModerator: false,
+      isModerator,
       isObserver: false,
       avatarUrl: null
     };
 
     room.players.set(playerId, player);
-    logger.info(`Player ${playerName} (${playerId}) joined room ${normalizedCode}`);
+    logger.info(`Player ${playerName} (${playerId}) joined room ${normalizedCode}${isModerator ? ' as moderator' : ''}`);
     return { success: true, data: { room, player } };
   }
 
@@ -92,10 +138,10 @@ export class RoomManager {
 
     room.players.delete(playerId);
 
-    // Delete room if empty
+    // Remove from memory when empty (but keep in DB for future joins)
     if (room.players.size === 0) {
       this.rooms.delete(normalizedCode);
-      logger.info(`Room ${normalizedCode} deleted (empty)`);
+      logger.info(`Room ${normalizedCode} removed from memory (empty)`);
       return { removed: true };
     }
 
@@ -198,7 +244,7 @@ export class RoomManager {
     return player?.isModerator ?? false;
   }
 
-  addManualStory(roomCode: string, summary: string): Story | null {
+  async addManualStory(roomCode: string, summary: string): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
@@ -209,11 +255,16 @@ export class RoomManager {
       voted: false
     };
 
+    // Persist to DB first
+    if (this.repository) {
+      await this.repository.addStory(roomCode, story);
+    }
+
     room.stories.push(story);
     return story;
   }
 
-  addJiraStory(roomCode: string, jiraStory: Omit<Story, 'id' | 'isManual' | 'voted'>): Story | null {
+  async addJiraStory(roomCode: string, jiraStory: Omit<Story, 'id' | 'isManual' | 'voted'>): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
@@ -229,33 +280,49 @@ export class RoomManager {
       voted: false
     };
 
+    // Persist to DB first
+    if (this.repository) {
+      await this.repository.addStory(roomCode, story);
+    }
+
     room.stories.push(story);
     return story;
   }
 
-  removeStory(roomCode: string, storyId: string): boolean {
+  async removeStory(roomCode: string, storyId: string): Promise<boolean> {
     const room = this.getRoom(roomCode);
     if (!room) return false;
 
     const index = room.stories.findIndex(s => s.id === storyId);
     if (index === -1) return false;
 
+    // Remove from DB first
+    if (this.repository) {
+      await this.repository.removeStory(storyId);
+    }
+
     room.stories.splice(index, 1);
 
     // If active story was removed, clear selection
     if (room.activeStoryId === storyId) {
       room.activeStoryId = undefined;
+      if (this.repository) {
+        await this.repository.setActiveStory(roomCode, null);
+      }
     }
 
     return true;
   }
 
-  selectStory(roomCode: string, storyId: string | null): Story | null {
+  async selectStory(roomCode: string, storyId: string | null): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
     if (storyId === null) {
       room.activeStoryId = undefined;
+      if (this.repository) {
+        await this.repository.setActiveStory(roomCode, null);
+      }
       return null;
     }
 
@@ -263,6 +330,9 @@ export class RoomManager {
     if (!story) return null;
 
     room.activeStoryId = storyId;
+    if (this.repository) {
+      await this.repository.setActiveStory(roomCode, storyId);
+    }
     return story;
   }
 
@@ -272,7 +342,7 @@ export class RoomManager {
     return room.stories.find(s => s.id === room.activeStoryId) || null;
   }
 
-  applyStoryPoints(roomCode: string, storyId: string, points: number): Story | null {
+  async applyStoryPoints(roomCode: string, storyId: string, points: number): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
@@ -281,12 +351,24 @@ export class RoomManager {
 
     story.storyPoints = points;
     story.voted = true;
+
+    // Persist to DB
+    if (this.repository) {
+      await this.repository.updateStoryPoints(storyId, points);
+    }
+
     return story;
   }
 
-  clearStories(roomCode: string): boolean {
+  async clearStories(roomCode: string): Promise<boolean> {
     const room = this.getRoom(roomCode);
     if (!room) return false;
+
+    // Clear from DB first
+    if (this.repository) {
+      await this.repository.clearStories(roomCode);
+      await this.repository.setActiveStory(roomCode, null);
+    }
 
     room.stories = [];
     room.activeStoryId = undefined;
@@ -301,11 +383,17 @@ export class RoomManager {
 
   // Jira configuration methods
 
-  setJiraConfig(roomCode: string, config: JiraConfig): boolean {
+  async setJiraConfig(roomCode: string, config: JiraConfig): Promise<boolean> {
     const room = this.getRoom(roomCode);
     if (!room) return false;
 
     room.jiraConfig = config;
+
+    // Persist to DB
+    if (this.repository) {
+      await this.repository.setJiraConfig(roomCode, config);
+    }
+
     return true;
   }
 
@@ -314,11 +402,17 @@ export class RoomManager {
     return room?.jiraConfig;
   }
 
-  clearJiraConfig(roomCode: string): boolean {
+  async clearJiraConfig(roomCode: string): Promise<boolean> {
     const room = this.getRoom(roomCode);
     if (!room) return false;
 
     room.jiraConfig = undefined;
+
+    // Persist to DB
+    if (this.repository) {
+      await this.repository.setJiraConfig(roomCode, undefined);
+    }
+
     return true;
   }
 

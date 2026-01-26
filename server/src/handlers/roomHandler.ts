@@ -3,9 +3,9 @@ import { logger } from '../utils/logger';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
 
-    socket.on('createRoom', (playerName: string, callback) => {
+    socket.on('createRoom', async (playerName: string, callback) => {
         try {
-            const result = roomManager.createRoom(playerName, socket.id);
+            const result = await roomManager.createRoom(playerName, socket.id);
 
             if (!result.success) {
                 callback({ success: false, error: result.error });
@@ -31,9 +31,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         }
     });
 
-    socket.on('joinRoom', ({ roomCode, playerName }, callback) => {
+    socket.on('joinRoom', async ({ roomCode, playerName }, callback) => {
         try {
-            const result = roomManager.joinRoom(roomCode, playerName, socket.id);
+            const result = await roomManager.joinRoom(roomCode, playerName, socket.id);
 
             if (!result.success) {
                 callback({ success: false, error: result.error });
