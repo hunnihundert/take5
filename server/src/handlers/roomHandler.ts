@@ -83,7 +83,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         if (roomCode) {
             const result = roomManager.removePlayer(roomCode, socket.id);
             if (result.removed) {
-                socket.to(roomCode).emit('playerLeft', {
+                // Use io.to() instead of socket.to() for disconnect events
+                // to ensure reliable delivery to all remaining players
+                io.to(roomCode).emit('playerLeft', {
                     playerId: socket.id,
                     newModeratorId: result.newModerator?.id
                 });
