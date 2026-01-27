@@ -157,21 +157,39 @@ const StoryList = ({
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {story.voted && (
+                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                          {story.storyPoints} SP
+                        </span>
+                      )}
+                      {story.isManual && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                          Manuell
+                        </span>
+                      )}
+                    </div>
                     {story.key && (
-                      <span className="text-xs font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                        {story.key}
-                      </span>
-                    )}
-                    {story.voted && (
-                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                        {story.storyPoints} SP
-                      </span>
-                    )}
-                    {story.isManual && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                        Manuell
-                      </span>
+                      story.url ? (
+                        <a
+                          href={story.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-mono bg-blue-50 text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          title="In Jira öffnen"
+                        >
+                          {story.key}
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      ) : (
+                        <span className="text-xs font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                          {story.key}
+                        </span>
+                      )
                     )}
                   </div>
                   <p className="text-sm text-gray-800 mt-1 truncate" title={story.summary}>
