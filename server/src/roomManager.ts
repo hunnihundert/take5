@@ -248,11 +248,25 @@ export class RoomManager {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
+    // Detect Jira URL in summary
+    const jiraUrlRegex = /(https?:\/\/[^\s]+\/browse\/([A-Z][A-Z0-9]+-\d+))/i;
+    const match = summary.match(jiraUrlRegex);
+
+    let key: string | undefined;
+    let url: string | undefined;
+
+    if (match) {
+      url = match[1];
+      key = match[2];
+    }
+
     const story: Story = {
       id: randomUUID(),
       summary: summary.trim(),
       isManual: true,
-      voted: false
+      voted: false,
+      key,
+      url
     };
 
     // Persist to DB first
