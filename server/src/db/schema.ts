@@ -1,7 +1,7 @@
 import { pgTable, varchar, timestamp, uuid, text, integer, boolean } from 'drizzle-orm/pg-core';
 
 export const rooms = pgTable('rooms', {
-    code: varchar('code', { length: 6 }).primaryKey(),
+    code: varchar('code', { length: 12 }).primaryKey(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     activeStoryId: uuid('active_story_id'),
     // Jira config is intentionally not persisted - tokens should not be stored in the database
@@ -10,7 +10,7 @@ export const rooms = pgTable('rooms', {
 
 export const stories = pgTable('stories', {
     id: uuid('id').primaryKey().defaultRandom(),
-    roomCode: varchar('room_code', { length: 6 }).notNull().references(() => rooms.code, { onDelete: 'cascade' }),
+    roomCode: varchar('room_code', { length: 12 }).notNull().references(() => rooms.code, { onDelete: 'cascade' }),
     key: varchar('key', { length: 50 }),
     summary: text('summary').notNull(),
     storyPoints: integer('story_points'),

@@ -105,9 +105,9 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
         };
     }, [socket, setRoomState, setInRoom]);
 
-    const createRoom = useCallback((playerName: string) => {
+    const createRoom = useCallback((playerName: string, roomCode?: string) => {
         if (!socket) return;
-        socket.emit('createRoom', playerName, (response: { success: boolean; roomCode?: string; error?: string }) => {
+        socket.emit('createRoom', playerName, roomCode, (response: { success: boolean; roomCode?: string; error?: string }) => {
             if (!response.success) {
                 alert(response.error || 'Fehler beim Erstellen des Raums');
             }
