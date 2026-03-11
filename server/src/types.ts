@@ -34,7 +34,11 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  createRoom: (playerName: string, callback: (response: { success: boolean; roomCode?: string; error?: string }) => void) => void;
+  createRoom: (
+    playerName: string,
+    roomCode: string | undefined,
+    callback: (response: { success: boolean; roomCode?: string; error?: string }) => void
+  ) => void;
   joinRoom: (data: { roomCode: string; playerName: string }, callback: (response: { success: boolean; error?: string }) => void) => void;
   selectCard: (cardValue: CardValue) => void;
   revealCards: () => void;

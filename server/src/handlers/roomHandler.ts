@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
 
-    socket.on('createRoom', async (playerName: string, roomCode: string | undefined, callback) => {
+    socket.on('createRoom', async (playerName, roomCode, callback) => {
         try {
             const result = await roomManager.createRoom(playerName, socket.id, roomCode);
 
