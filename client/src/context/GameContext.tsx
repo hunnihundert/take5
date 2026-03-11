@@ -8,6 +8,10 @@ import { RoomState, CardValue } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
+// Use environment variable or default to current origin in production
+const BACKEND_URL = import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin);
+
 interface IncomingEmoji {
     toPlayerId: string;
     emoji: string;
@@ -76,7 +80,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Send a heartbeat every 10 minutes to prevent Render from sleeping
         // Render free tier spins down after 15 minutes of inactivity
         const heartbeatInterval = setInterval(() => {
-            fetch('/api/health')
+            const baseUrl = BACKEND_URL.replace(/\/socket\.io\/?$/, '').replace(/\/+$/, '');
+            fetch(`${baseUrl}/api/health`)
                 .then(response => {
                     if (!response.ok) {
                         console.error(
