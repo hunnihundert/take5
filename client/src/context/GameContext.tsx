@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useSocket } from '../hooks/useSocket';
+import { useSocket, BACKEND_URL } from '../hooks/useSocket';
 import { useRoomSocket } from '../hooks/useRoomSocket';
 import { useGameSocket } from '../hooks/useGameSocket';
 import { useStorySocket } from '../hooks/useStorySocket';
@@ -7,10 +7,6 @@ import { useJiraSocket } from '../hooks/useJiraSocket';
 import { RoomState, CardValue } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
-
-// Use environment variable or default to current origin in production
-const BACKEND_URL = import.meta.env.VITE_SOCKET_URL ||
-  (import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin);
 
 interface IncomingEmoji {
     toPlayerId: string;

@@ -1,8 +1,7 @@
 import { render, act } from '@testing-library/react';
 import { GameProvider, useGameContext } from './GameContext';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import React, { useEffect } from 'react';
-import { useRoomSocket } from '../hooks/useRoomSocket';
+import { useEffect } from 'react';
 
 // Variable to capture setInRoom from the mock
 let capturedSetInRoom: ((inRoom: boolean) => void) | undefined;
