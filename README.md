@@ -167,6 +167,19 @@ npm run build
 
 Das erstellt optimierte Produktions-Dateien im `client/dist` Ordner.
 
+### Datenbank-Update (WICHTIG)
+
+Wenn du PostgreSQL verwendest (via `DATABASE_URL`), musst du bei Schema-Änderungen (z.B. Verlängerung der Raum-Codes) die Datenbank aktualisieren:
+
+```bash
+# Schema direkt pushen (empfohlen für schnelle Updates)
+npm run db:push --workspace=server
+
+# ODER Migrations generieren und anwenden
+npm run db:generate --workspace=server
+npm run db:migrate --workspace=server
+```
+
 ### Server starten
 
 ```bash
