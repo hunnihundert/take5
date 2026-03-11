@@ -42,6 +42,60 @@ describe('RoomManager', () => {
                 expect(result.data.player.isModerator).toBe(true);
             }
         });
+
+        it('should create a room with a valid custom code', async () => {
+            const customCode = 'MYROOM123';
+            const result = await roomManager.createRoom(playerName, playerId, customCode);
+
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data.room.code).toBe(customCode);
+            }
+        });
+
+        it('should normalize custom code to uppercase', async () => {
+            const result = await roomManager.createRoom(playerName, playerId, 'myroom');
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data.room.code).toBe('MYROOM');
+            }
+        });
+
+        it('should fail if custom room code already exists (memory)', async () => {
+            await roomManager.createRoom(playerName, 'player1', 'EXISTING');
+            const result = await roomManager.createRoom(playerName, 'player2', 'existing');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe('Raum mit diesem Code existiert bereits.');
+            }
+        });
+
+        it('should fail if custom room code has invalid characters', async () => {
+            const result = await roomManager.createRoom(playerName, playerId, 'INVALID-CODE!');
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toContain('Ungültiger Raum-Code');
+            }
+        });
+
+        it('should fail if custom room code is too short', async () => {
+            const result = await roomManager.createRoom(playerName, playerId, 'AB');
+            expect(result.success).toBe(false);
+        });
+
+        it('should fail if custom room code is too long', async () => {
+            const result = await roomManager.createRoom(playerName, playerId, 'VERYLONGROOMCODE');
+            expect(result.success).toBe(false);
+        });
+
+        it('should auto-generate a code if custom code is empty or whitespace', async () => {
+            const result = await roomManager.createRoom(playerName, playerId, '   ');
+            expect(result.success).toBe(true);
+            if (result.success) {
+                expect(result.data.room.code).toHaveLength(6);
+            }
+        });
     });
 
     describe('joinRoom', () => {

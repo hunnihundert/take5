@@ -17,7 +17,7 @@ interface GameContextType {
     roomState: RoomState;
     inRoom: boolean;
     incomingEmojis: IncomingEmoji[];
-    createRoom: (playerName: string) => void;
+    createRoom: (playerName: string, roomCode?: string) => void;
     joinRoom: (roomCode: string, playerName: string) => void;
     selectCard: (cardValue: CardValue) => void;
     revealCards: () => void;

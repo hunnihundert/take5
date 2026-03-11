@@ -3,9 +3,9 @@ import { logger } from '../utils/logger';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
 
-    socket.on('createRoom', async (playerName: string, callback) => {
+    socket.on('createRoom', async (playerName, roomCode, callback) => {
         try {
-            const result = await roomManager.createRoom(playerName, socket.id);
+            const result = await roomManager.createRoom(playerName, socket.id, roomCode);
 
             if (!result.success) {
                 callback({ success: false, error: result.error });

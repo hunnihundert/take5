@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 interface HomeProps {
-  onCreateRoom: (playerName: string) => void;
+  onCreateRoom: (playerName: string, roomCode?: string) => void;
   onJoinRoom: (roomCode: string, playerName: string) => void;
   initialRoomCode?: string;
 }
@@ -28,7 +28,7 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
     }
 
     if (mode === 'create') {
-      onCreateRoom(playerName.trim());
+      onCreateRoom(playerName.trim(), roomCode.trim() || undefined);
     } else if (mode === 'join') {
       if (!roomCode.trim()) {
         alert('Bitte gib einen Raum-Code ein');
@@ -79,6 +79,25 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
               />
             </div>
 
+            {mode === 'create' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Raum-Code (optional)
+                </label>
+                <input
+                  type="text"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none uppercase"
+                  placeholder="Z.B. MEINRAUM"
+                  maxLength={12}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Leer lassen für zufälligen Code. 3-12 Zeichen.
+                </p>
+              </div>
+            )}
+
             {mode === 'join' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -89,8 +108,8 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none uppercase"
-                  placeholder="XXXXXX"
-                  maxLength={6}
+                  placeholder="Z.B. MEINRAUM"
+                  maxLength={12}
                 />
               </div>
             )}

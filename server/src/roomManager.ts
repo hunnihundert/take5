@@ -37,8 +37,28 @@ export class RoomManager {
     throw new Error('Failed to generate unique room code');
   }
 
-  async createRoom(playerName: string, playerId: string): Promise<Result<{ room: Room; player: Player }>> {
-    const code = await this.generateRoomCode();
+  async createRoom(playerName: string, playerId: string, roomCode?: string): Promise<Result<{ room: Room; player: Player }>> {
+    let code: string;
+
+    if (roomCode && roomCode.trim().length > 0) {
+      code = this.normalizeRoomCode(roomCode.trim());
+
+      // Validation: 3-12 alphanumeric characters
+      const codeRegex = /^[A-Z0-9]{3,12}$/;
+      if (!codeRegex.test(code)) {
+        return { success: false, error: 'Ungültiger Raum-Code. Verwende 3-12 alphanumerische Zeichen.' };
+      }
+
+      // Check for collisions
+      const inMemory = this.rooms.has(code);
+      const inDb = this.repository ? await this.repository.roomExists(code) : false;
+
+      if (inMemory || inDb) {
+        return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
+      }
+    } else {
+      code = await this.generateRoomCode();
+    }
 
     const player: Player = {
       id: playerId,
@@ -62,7 +82,15 @@ export class RoomManager {
 
     // Persist to DB first
     if (this.repository) {
-      await this.repository.createRoom(code);
+      try {
+        await this.repository.createRoom(code);
+      } catch (error: any) {
+        // Handle Postgres unique_violation error (23505)
+        if (error.code === '23505') {
+          return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
+        }
+        throw error;
+      }
     }
 
     this.rooms.set(code, room);
