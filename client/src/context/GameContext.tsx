@@ -6,6 +6,8 @@ import { useStorySocket } from '../hooks/useStorySocket';
 import { useJiraSocket } from '../hooks/useJiraSocket';
 import { RoomState, CardValue } from '../types';
 
+const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
 interface IncomingEmoji {
     toPlayerId: string;
     emoji: string;
@@ -85,7 +87,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     }
                 })
                 .catch(err => console.error('Heartbeat failed (network error):', err));
-        }, 10 * 60 * 1000);
+        }, HEARTBEAT_INTERVAL_MS);
 
         return () => clearInterval(heartbeatInterval);
     }, [inRoom]);
