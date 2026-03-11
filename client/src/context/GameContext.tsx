@@ -75,7 +75,16 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Render free tier spins down after 15 minutes of inactivity
         const heartbeatInterval = setInterval(() => {
             fetch('/api/health')
-                .catch(err => console.error('Heartbeat failed:', err));
+                .then(response => {
+                    if (!response.ok) {
+                        console.error(
+                            'Heartbeat failed: non-2xx response',
+                            response.status,
+                            response.statusText
+                        );
+                    }
+                })
+                .catch(err => console.error('Heartbeat failed (network error):', err));
         }, 10 * 60 * 1000);
 
         return () => clearInterval(heartbeatInterval);
