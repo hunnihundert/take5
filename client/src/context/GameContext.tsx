@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useSocket } from '../hooks/useSocket';
+import { useSocket, BACKEND_URL } from '../hooks/useSocket';
 import { useRoomSocket } from '../hooks/useRoomSocket';
 import { useGameSocket } from '../hooks/useGameSocket';
 import { useStorySocket } from '../hooks/useStorySocket';
 import { useJiraSocket } from '../hooks/useJiraSocket';
 import { RoomState, CardValue } from '../types';
+
+const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 interface IncomingEmoji {
     toPlayerId: string;
@@ -66,6 +68,30 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Logic to handle auto-join flow could be added here or handled by the component
         }
     }, []);
+
+    // Heartbeat to keep Render instance alive when in a room
+    useEffect(() => {
+        if (!inRoom) return;
+
+        // Send a heartbeat every 10 minutes to prevent Render from sleeping
+        // Render free tier spins down after 15 minutes of inactivity
+        const heartbeatInterval = setInterval(() => {
+            const baseUrl = BACKEND_URL.replace(/\/socket\.io\/?$/, '').replace(/\/+$/, '');
+            fetch(`${baseUrl}/api/health`)
+                .then(response => {
+                    if (!response.ok) {
+                        console.error(
+                            'Heartbeat failed: non-2xx response',
+                            response.status,
+                            response.statusText
+                        );
+                    }
+                })
+                .catch(err => console.error('Heartbeat failed (network error):', err));
+        }, HEARTBEAT_INTERVAL_MS);
+
+        return () => clearInterval(heartbeatInterval);
+    }, [inRoom]);
 
     // Initialize logic hooks
     const { createRoom, joinRoom, updateAvatar } = useRoomSocket({ socket, setRoomState, setInRoom });
