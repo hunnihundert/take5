@@ -67,6 +67,20 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
+    // Heartbeat to keep Render instance alive when in a room
+    useEffect(() => {
+        if (!inRoom) return;
+
+        // Send a heartbeat every 10 minutes to prevent Render from sleeping
+        // Render free tier spins down after 15 minutes of inactivity
+        const heartbeatInterval = setInterval(() => {
+            fetch('/api/health')
+                .catch(err => console.error('Heartbeat failed:', err));
+        }, 10 * 60 * 1000);
+
+        return () => clearInterval(heartbeatInterval);
+    }, [inRoom]);
+
     // Initialize logic hooks
     const { createRoom, joinRoom, updateAvatar } = useRoomSocket({ socket, setRoomState, setInRoom });
     const { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji } = useGameSocket({
