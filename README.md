@@ -157,6 +157,39 @@ npm run dev:server
 npm run dev:client
 ```
 
+## Tests
+
+Die Anwendung verfügt über Tests für Frontend, Backend und End-to-End (E2E) Workflows.
+
+### Alle Unit- & Integration-Tests ausführen
+
+```bash
+npm run test
+```
+
+Dies führt die Tests sowohl für den Client als auch für den Server aus.
+
+### Server-Tests
+Die Server-Tests verwenden **Vitest** und prüfen die Raum-Verwaltung, Socket-Handler, Jira-Integration und Datenbank-Integration.
+
+```bash
+npm run test:server
+```
+
+### Client-Tests
+Die Client-Tests verwenden **Vitest** und die **React Testing Library** für die Verifizierung von Hooks und Context-Providern.
+
+```bash
+npm run test:client
+```
+
+### E2E-Tests
+End-to-End Tests werden mit **Playwright** durchgeführt und testen den gesamten Abstimmungsprozess in einem echten Browser.
+
+```bash
+npm run test:e2e
+```
+
 ## Produktion
 
 ### Frontend bauen
