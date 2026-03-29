@@ -176,8 +176,9 @@ const StoryList = ({
                               className="text-blue-600 hover:text-blue-800"
                               onClick={(e) => e.stopPropagation()}
                               title="Link öffnen"
+                              aria-label="Externen Link öffnen"
                             >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                               </svg>
                             </a>
@@ -194,9 +195,10 @@ const StoryList = ({
                           className="text-xs font-mono bg-blue-50 text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
                           onClick={(e) => e.stopPropagation()}
                           title="In Jira öffnen"
+                          aria-label={`In Jira öffnen: ${story.key}`}
                         >
                           {story.key}
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </a>
