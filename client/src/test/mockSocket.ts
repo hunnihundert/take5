@@ -1,12 +1,10 @@
-import { vi } from 'vitest';
-
 export class MockSocket {
     id: string;
     connected: boolean;
     listeners: { [event: string]: Function[] } = {};
     emitted: { event: string; args: any[] }[] = [];
 
-    constructor(id = 'test-socket-id') {
+    constructor(id = "test-socket-id") {
         this.id = id;
         this.connected = true;
     }
@@ -23,7 +21,9 @@ export class MockSocket {
         if (!callback) {
             delete this.listeners[event];
         } else if (this.listeners[event]) {
-            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+            this.listeners[event] = this.listeners[event].filter(
+                (cb) => cb !== callback,
+            );
         }
         return this;
     }
@@ -36,7 +36,7 @@ export class MockSocket {
     // Helper to simulate incoming server events
     trigger(event: string, ...args: any[]) {
         if (this.listeners[event]) {
-            this.listeners[event].forEach(cb => cb(...args));
+            this.listeners[event].forEach((cb) => cb(...args));
         }
     }
 
