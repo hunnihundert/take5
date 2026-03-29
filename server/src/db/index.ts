@@ -5,6 +5,10 @@ import * as schema from './schema';
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let pool: Pool | null = null;
 
+export function setTestDb(testDb: any) {
+    db = testDb;
+}
+
 export function getDb() {
     if (!db) {
         throw new Error('Database not initialized. Call initDatabase() first.');

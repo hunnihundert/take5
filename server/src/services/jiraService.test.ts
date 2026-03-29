@@ -68,6 +68,15 @@ describe('JiraService', () => {
             expect(result.success).toBe(false);
             expect(result.error).toContain('Ungültige Anmeldedaten');
         });
+
+        it('should handle slow responses', async () => {
+            globalFetch.mockImplementationOnce(() => 
+                new Promise(resolve => setTimeout(() => resolve({ ok: true, status: 200 }), 100))
+            );
+
+            const result = await JiraService.testConnection(mockConfig);
+            expect(result.success).toBe(true);
+        });
     });
 
     describe('fetchIssue', () => {
