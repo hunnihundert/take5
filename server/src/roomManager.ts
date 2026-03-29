@@ -291,7 +291,7 @@ export class RoomManager {
       const generalUrlRegex = /(https?:\/\/[^\s]+)/i;
       const generalMatch = summary.match(generalUrlRegex);
       if (generalMatch) {
-        url = generalMatch[1];
+        url = generalMatch[1].replace(/[.,!?;:)]+$/, '');
       }
     }
 

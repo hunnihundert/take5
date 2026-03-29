@@ -227,6 +227,13 @@ describe('RoomManager', () => {
             expect(story?.key).toBeUndefined();
         });
 
+        it('should trim trailing punctuation from general URLs', async () => {
+            const summary = 'Visit https://example.com). This is important!';
+            const story = await roomManager.addManualStory(roomCode, summary);
+
+            expect(story?.url).toBe('https://example.com');
+        });
+
         it('should select active story', async () => {
             const story = await roomManager.addManualStory(roomCode, 'Story 1');
             expect(story).not.toBeNull();
