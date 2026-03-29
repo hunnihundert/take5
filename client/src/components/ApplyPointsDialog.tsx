@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Story, Player, CardValue } from '../types';
+import { renderSummaryWithLinks } from '../utils/linkRenderer';
 
 interface ApplyPointsDialogProps {
   isOpen: boolean;
@@ -88,7 +89,9 @@ const ApplyPointsDialog = ({
                 {story.key}
               </span>
             )}
-            <p className="text-sm text-gray-800 mt-1">{story.summary}</p>
+            <div className="text-sm text-gray-800 mt-1">
+              {renderSummaryWithLinks(story.summary)}
+            </div>
           </div>
 
           {/* Consensus Message */}
