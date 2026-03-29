@@ -28,7 +28,6 @@ export class RoomRepository {
             throw new DatabaseError('Ein Eintrag mit diesem Schlüssel existiert bereits.', '23505');
         }
         
-        const message = error instanceof Error ? error.message : String(error);
         // Sanitize message for the user but keep it informative
         throw new DatabaseError('Datenbank-Fehler. Bitte versuche es später erneut.');
     }
