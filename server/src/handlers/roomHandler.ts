@@ -26,8 +26,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
                 activeStoryId: room.activeStoryId ?? null,
                 jiraConnected: room.jiraConfig !== undefined
             });
-        } catch (error) {
-            callback({ success: false, error: 'Fehler beim Erstellen des Raums' });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            callback({ success: false, error: message });
         }
     });
 
@@ -59,8 +60,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
 
             // Notify other players
             socket.to(room.code).emit('playerJoined', player);
-        } catch (error) {
-            callback({ success: false, error: 'Fehler beim Beitreten' });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            callback({ success: false, error: message });
         }
     });
 

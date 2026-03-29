@@ -13,15 +13,16 @@ export interface DbRoom {
 }
 
 export class RoomRepository {
-    private handleError(error: any, operation: string): never {
+    private handleError(error: unknown, operation: string): never {
         logger.error(`Database error during ${operation}:`, error);
         
         // Handle Postgres unique_violation error specifically if needed by caller
-        if (error.code === '23505') {
+        if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
             throw error;
         }
         
-        throw new Error('Datenbank-Fehler. Bitte versuche es später erneut.');
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Datenbank-Fehler: ${message}. Bitte versuche es später erneut.`);
     }
 
     async createRoom(code: string): Promise<void> {
@@ -32,7 +33,7 @@ export class RoomRepository {
             await db.insert(rooms).values({
                 code,
             });
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'createRoom');
         }
     }
@@ -55,7 +56,7 @@ export class RoomRepository {
             });
 
             return this.hydrateRoom(roomRecord, storyRecords);
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'getRoomWithStories');
         }
     }
@@ -71,7 +72,7 @@ export class RoomRepository {
             });
 
             return result !== undefined;
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'roomExists');
         }
     }
@@ -104,7 +105,7 @@ export class RoomRepository {
                 voted: story.voted,
                 position: maxPosition + 1,
             });
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'addStory');
         }
     }
@@ -115,7 +116,7 @@ export class RoomRepository {
         try {
             const db = getDb();
             await db.delete(stories).where(eq(stories.id, storyId));
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'removeStory');
         }
     }
@@ -128,7 +129,7 @@ export class RoomRepository {
             await db.update(stories)
                 .set({ storyPoints: points, voted: true })
                 .where(eq(stories.id, storyId));
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'updateStoryPoints');
         }
     }
@@ -139,7 +140,7 @@ export class RoomRepository {
         try {
             const db = getDb();
             await db.delete(stories).where(eq(stories.roomCode, roomCode));
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'clearStories');
         }
     }
@@ -152,7 +153,7 @@ export class RoomRepository {
             await db.update(rooms)
                 .set({ activeStoryId: storyId })
                 .where(eq(rooms.code, roomCode));
-        } catch (error) {
+        } catch (error: unknown) {
             this.handleError(error, 'setActiveStory');
         }
     }

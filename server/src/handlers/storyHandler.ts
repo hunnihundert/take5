@@ -17,8 +17,9 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             if (story) {
                 io.to(roomCode).emit('storyAdded', story);
             }
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Hinzufügen der Story');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -36,8 +37,9 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             if (success) {
                 io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
             }
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Entfernen der Story');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -53,8 +55,9 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
         try {
             const story = await roomManager.selectStory(roomCode, storyId);
             io.to(roomCode).emit('storySelected', { storyId: storyId || '', story });
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Auswählen der Story');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -72,8 +75,9 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             if (story) {
                 io.to(roomCode).emit('storyPointsApplied', { storyId, points });
             }
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Speichern der Story Points');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -89,8 +93,9 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
         try {
             await roomManager.clearStories(roomCode);
             io.to(roomCode).emit('storiesUpdated', []);
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Löschen der Stories');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 };

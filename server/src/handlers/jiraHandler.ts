@@ -24,8 +24,9 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             await roomManager.setJiraConfig(roomCode, config);
             io.to(roomCode).emit('jiraConfigured', { baseUrl: config.baseUrl });
             console.log(`Jira configured for room ${roomCode}: ${config.baseUrl}`);
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Speichern der Jira-Konfiguration');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -42,8 +43,9 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             await roomManager.clearJiraConfig(roomCode);
             io.to(roomCode).emit('jiraDisconnected');
             console.log(`Jira disconnected for room ${roomCode}`);
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Trennen von Jira');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -93,8 +95,9 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             }
 
             io.to(roomCode).emit('storyAdded', addedStory);
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Hinzufügen der Jira-Story');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -135,8 +138,9 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             if (addedCount === 0 && result.stories.length > 0) {
                 socket.emit('jiraError', { code: 'ALL_DUPLICATES', message: 'Alle gefundenen Stories sind bereits vorhanden' });
             }
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Importieren der Jira-Stories');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -171,8 +175,9 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             }
 
             io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
-        } catch (error: any) {
-            socket.emit('error', error.message || 'Fehler beim Aktualisieren der Jira-Stories');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 };
