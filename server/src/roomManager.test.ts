@@ -211,6 +211,22 @@ describe('RoomManager', () => {
             expect(stories).toHaveLength(1);
         });
 
+        it('should detect Jira link and key in manual story', async () => {
+            const summary = 'Fix bug https://company.atlassian.net/browse/PROJ-123 in UI';
+            const story = await roomManager.addManualStory(roomCode, summary);
+
+            expect(story?.url).toBe('https://company.atlassian.net/browse/PROJ-123');
+            expect(story?.key).toBe('PROJ-123');
+        });
+
+        it('should fallback to general URL detection if no Jira link found', async () => {
+            const summary = 'Check documentation at https://docs.google.com/doc123 for details';
+            const story = await roomManager.addManualStory(roomCode, summary);
+
+            expect(story?.url).toBe('https://docs.google.com/doc123');
+            expect(story?.key).toBeUndefined();
+        });
+
         it('should select active story', async () => {
             const story = await roomManager.addManualStory(roomCode, 'Story 1');
             expect(story).not.toBeNull();
