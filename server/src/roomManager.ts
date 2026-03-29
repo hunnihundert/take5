@@ -286,6 +286,13 @@ export class RoomManager {
     if (match) {
       url = match[1];
       key = match[2];
+    } else {
+      // Fallback: detect first general URL
+      const generalUrlRegex = /(https?:\/\/[^\s]+)/i;
+      const generalMatch = summary.match(generalUrlRegex);
+      if (generalMatch) {
+        url = generalMatch[1];
+      }
     }
 
     const story: Story = {
