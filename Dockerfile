@@ -32,26 +32,23 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Create a non-root user for security
+# Create a non-root user for security (before COPY commands)
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy root workspace files and only necessary workspace package.json files
-COPY package.json package-lock.json ./
-COPY server/package.json ./server/
-COPY shared/package.json ./shared/
+# Copy root workspace files with correct ownership
+COPY --chown=expressjs:nodejs package.json package-lock.json ./
+COPY --chown=expressjs:nodejs server/package.json ./server/
+COPY --chown=expressjs:nodejs shared/package.json ./shared/
 
 # Install only production dependencies for the server (and its workspace dependencies)
 # We use --workspace=server to target only the backend
 RUN npm ci --omit=dev --workspace=server && npm cache clean --force
 
-# Copy the built artifacts from the builder stage
-COPY --from=builder /app/shared/dist ./shared/dist
-COPY --from=builder /app/server/dist ./server/dist
-COPY --from=builder /app/client/dist ./client/dist
-
-# Set ownership to non-root user
-RUN chown -R expressjs:nodejs /app
+# Copy the built artifacts from the builder stage with correct ownership
+COPY --chown=expressjs:nodejs --from=builder /app/shared/dist ./shared/dist
+COPY --chown=expressjs:nodejs --from=builder /app/server/dist ./server/dist
+COPY --chown=expressjs:nodejs --from=builder /app/client/dist ./client/dist
 
 USER expressjs
 
