@@ -71,8 +71,9 @@ export class JiraService {
       }
 
       return { success: false, error: `Verbindungsfehler: ${response.status}` };
-    } catch (error) {
-      return { success: false, error: 'Verbindung fehlgeschlagen. Bitte URL prüfen.' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, error: `Verbindung fehlgeschlagen: ${message}` };
     }
   }
 
@@ -124,8 +125,9 @@ export class JiraService {
           voted: storyPoints !== undefined
         }
       };
-    } catch (error) {
-      return { story: null, error: 'Netzwerkfehler beim Abrufen des Issues' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { story: null, error: `Netzwerkfehler: ${message}` };
     }
   }
 
@@ -189,8 +191,9 @@ export class JiraService {
       });
 
       return { stories };
-    } catch (error) {
-      return { stories: [], error: 'Netzwerkfehler bei der Suche' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { stories: [], error: `Netzwerkfehler: ${message}` };
     }
   }
 
@@ -236,8 +239,9 @@ export class JiraService {
       }
 
       return { success: false, error: `Aktualisierungsfehler: ${response.status}` };
-    } catch (error) {
-      return { success: false, error: 'Netzwerkfehler beim Aktualisieren' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, error: `Netzwerkfehler: ${message}` };
     }
   }
 
@@ -275,8 +279,9 @@ export class JiraService {
       );
 
       return { fieldId: field?.id || null };
-    } catch (error) {
-      return { fieldId: null, error: 'Netzwerkfehler beim Abrufen der Felder' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { fieldId: null, error: `Netzwerkfehler: ${message}` };
     }
   }
 

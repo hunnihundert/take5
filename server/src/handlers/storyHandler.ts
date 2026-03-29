@@ -12,9 +12,14 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             return;
         }
 
-        const story = await roomManager.addManualStory(roomCode, summary);
-        if (story) {
-            io.to(roomCode).emit('storyAdded', story);
+        try {
+            const story = await roomManager.addManualStory(roomCode, summary);
+            if (story) {
+                io.to(roomCode).emit('storyAdded', story);
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -27,9 +32,14 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             return;
         }
 
-        const success = await roomManager.removeStory(roomCode, storyId);
-        if (success) {
-            io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
+        try {
+            const success = await roomManager.removeStory(roomCode, storyId);
+            if (success) {
+                io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -42,8 +52,13 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             return;
         }
 
-        const story = await roomManager.selectStory(roomCode, storyId);
-        io.to(roomCode).emit('storySelected', { storyId: storyId || '', story });
+        try {
+            const story = await roomManager.selectStory(roomCode, storyId);
+            io.to(roomCode).emit('storySelected', { storyId: storyId || '', story });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
+        }
     });
 
     socket.on('applyStoryPoints', async ({ storyId, points }: { storyId: string; points: number }) => {
@@ -55,9 +70,14 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             return;
         }
 
-        const story = await roomManager.applyStoryPoints(roomCode, storyId, points);
-        if (story) {
-            io.to(roomCode).emit('storyPointsApplied', { storyId, points });
+        try {
+            const story = await roomManager.applyStoryPoints(roomCode, storyId, points);
+            if (story) {
+                io.to(roomCode).emit('storyPointsApplied', { storyId, points });
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
     });
 
@@ -70,7 +90,12 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
             return;
         }
 
-        await roomManager.clearStories(roomCode);
-        io.to(roomCode).emit('storiesUpdated', []);
+        try {
+            await roomManager.clearStories(roomCode);
+            io.to(roomCode).emit('storiesUpdated', []);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
+        }
     });
 };

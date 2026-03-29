@@ -14,7 +14,13 @@ vi.mock('./utils/logger', () => ({
 
 // Mock the repository module to avoid DB dependency
 vi.mock('./db/repository', () => ({
-    RoomRepository: vi.fn()
+    RoomRepository: vi.fn(),
+    DatabaseError: class extends Error {
+        constructor(message: string, public code?: string) {
+            super(message);
+            this.name = 'DatabaseError';
+        }
+    }
 }));
 
 describe('RoomManager', () => {
@@ -289,6 +295,38 @@ describe('RoomManager', () => {
             const cleared = await roomManager.clearJiraConfig(roomCode);
             expect(cleared).toBe(true);
             expect(roomManager.hasJiraConfig(roomCode)).toBe(false);
+        });
+    });
+
+    describe('Database Error Handling', () => {
+        it('should return failure result if joinRoom fails during DB hydration', async () => {
+            const mockRepo = {
+                getRoomWithStories: vi.fn().mockRejectedValue(new Error('Hydration failed')),
+                roomExists: vi.fn().mockResolvedValue(true)
+            };
+            const manager = new RoomManager(mockRepo as any);
+
+            const result = await manager.joinRoom('EXISTING', playerName, playerId);
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe('Hydration failed');
+            }
+        });
+
+        it('should return failure result if createRoom fails in DB', async () => {
+            const mockRepo = {
+                createRoom: vi.fn().mockRejectedValue(new Error('DB error')),
+                roomExists: vi.fn().mockResolvedValue(false)
+            };
+            const manager = new RoomManager(mockRepo as any);
+
+            const result = await manager.createRoom(playerName, playerId, 'NEWROOM');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.error).toBe('DB error');
+            }
         });
     });
 

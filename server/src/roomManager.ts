@@ -1,7 +1,7 @@
 import { Room, Player, CardValue, Story, JiraConfig } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
-import { RoomRepository } from './db/repository';
+import { RoomRepository, DatabaseError } from './db/repository';
 
 export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -84,12 +84,13 @@ export class RoomManager {
     if (this.repository) {
       try {
         await this.repository.createRoom(code);
-      } catch (error: any) {
-        // Handle Postgres unique_violation error (23505)
-        if (error.code === '23505') {
+      } catch (error: unknown) {
+        // Handle Postgres unique_violation error (23505) via DatabaseError
+        if (error instanceof DatabaseError && error.code === '23505') {
           return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
         }
-        throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
       }
     }
 
@@ -104,21 +105,26 @@ export class RoomManager {
 
     // If not in memory, try to load from DB
     if (!room && this.repository) {
-      const dbRoom = await this.repository.getRoomWithStories(normalizedCode);
+      try {
+        const dbRoom = await this.repository.getRoomWithStories(normalizedCode);
 
-      if (dbRoom) {
-        // Hydrate room from DB - empty players Map
-        room = {
-          code: dbRoom.code,
-          players: new Map(),
-          revealed: false,
-          createdAt: dbRoom.createdAt,
-          stories: dbRoom.stories,
-          activeStoryId: dbRoom.activeStoryId ?? undefined,
-          jiraConfig: dbRoom.jiraConfig,
-        };
-        this.rooms.set(normalizedCode, room);
-        logger.info(`Room ${normalizedCode} hydrated from database`);
+        if (dbRoom) {
+          // Hydrate room from DB - empty players Map
+          room = {
+            code: dbRoom.code,
+            players: new Map(),
+            revealed: false,
+            createdAt: dbRoom.createdAt,
+            stories: dbRoom.stories,
+            activeStoryId: dbRoom.activeStoryId ?? undefined,
+            jiraConfig: dbRoom.jiraConfig,
+          };
+          this.rooms.set(normalizedCode, room);
+          logger.info(`Room ${normalizedCode} hydrated from database`);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
       }
     }
 
@@ -349,9 +355,13 @@ export class RoomManager {
     if (room.activeStoryId === storyId) {
       room.activeStoryId = undefined;
       if (this.repository) {
-        await this.repository.setActiveStory(roomCode, null);
-      }
-    }
+        try {
+          await this.repository.setActiveStory(roomCode, null);
+        } catch (error: unknown) {
+          // Re-throw the sanitized error from repository
+          throw error;
+        }
+        }    }
 
     return true;
   }
@@ -363,9 +373,12 @@ export class RoomManager {
     if (storyId === null) {
       room.activeStoryId = undefined;
       if (this.repository) {
-        await this.repository.setActiveStory(roomCode, null);
-      }
-      return null;
+        try {
+          await this.repository.setActiveStory(roomCode, null);
+        } catch (error: unknown) {
+          throw error;
+        }
+        }      return null;
     }
 
     const story = room.stories.find(s => s.id === storyId);
@@ -391,12 +404,23 @@ export class RoomManager {
     const story = room.stories.find(s => s.id === storyId);
     if (!story) return null;
 
+    // Keep old values in case DB update fails
+    const oldPoints = story.storyPoints;
+    const oldVoted = story.voted;
+
     story.storyPoints = points;
     story.voted = true;
 
     // Persist to DB
     if (this.repository) {
-      await this.repository.updateStoryPoints(storyId, points);
+      try {
+        await this.repository.updateStoryPoints(storyId, points);
+      } catch (error: unknown) {
+        // Revert memory state
+        story.storyPoints = oldPoints;
+        story.voted = oldVoted;
+        throw error;
+      }
     }
 
     return story;
