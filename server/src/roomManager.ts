@@ -1,7 +1,7 @@
 import { Room, Player, CardValue, Story, JiraConfig } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
-import { RoomRepository } from './db/repository';
+import { RoomRepository, DatabaseError } from './db/repository';
 
 export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -85,11 +85,10 @@ export class RoomManager {
       try {
         await this.repository.createRoom(code);
       } catch (error: unknown) {
-        // Handle Postgres unique_violation error (23505)
-        if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+        // Handle Postgres unique_violation error (23505) via DatabaseError
+        if (error instanceof DatabaseError && error.code === '23505') {
           return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
         }
-        // For other errors, return the user-friendly message from the repository
         const message = error instanceof Error ? error.message : String(error);
         return { success: false, error: message };
       }
@@ -309,8 +308,6 @@ export class RoomManager {
       try {
         await this.repository.addStory(roomCode, story);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         throw error;
       }
     }
@@ -340,8 +337,6 @@ export class RoomManager {
       try {
         await this.repository.addStory(roomCode, story);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         throw error;
       }
     }
@@ -362,8 +357,6 @@ export class RoomManager {
       try {
         await this.repository.removeStory(storyId);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         throw error;
       }
     }
@@ -377,9 +370,8 @@ export class RoomManager {
         try {
           await this.repository.setActiveStory(roomCode, null);
         } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          logger.error(`Database error: ${message}`);
-          // Don't throw here, as the story itself was already removed from DB and memory
+          // Re-throw the sanitized error from repository
+          throw error;
         }
         }    }
 
@@ -396,8 +388,6 @@ export class RoomManager {
         try {
           await this.repository.setActiveStory(roomCode, null);
         } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
-          logger.error(`Database error: ${message}`);
           throw error;
         }
         }      return null;
@@ -411,8 +401,6 @@ export class RoomManager {
       try {
         await this.repository.setActiveStory(roomCode, storyId);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         throw error;
       }
     }
@@ -444,8 +432,6 @@ export class RoomManager {
       try {
         await this.repository.updateStoryPoints(storyId, points);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         // Revert memory state
         story.storyPoints = oldPoints;
         story.voted = oldVoted;
@@ -466,8 +452,6 @@ export class RoomManager {
         await this.repository.clearStories(roomCode);
         await this.repository.setActiveStory(roomCode, null);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        logger.error(`Database error: ${message}`);
         throw error;
       }
     }

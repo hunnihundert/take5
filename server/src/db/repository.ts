@@ -4,6 +4,13 @@ import { rooms, stories, RoomRecord, StoryRecord, NewRoom, NewStory } from './sc
 import { Story, JiraConfig } from '../types';
 import { logger } from '../utils/logger';
 
+export class DatabaseError extends Error {
+    constructor(message: string, public code?: string) {
+        super(message);
+        this.name = 'DatabaseError';
+    }
+}
+
 export interface DbRoom {
     code: string;
     createdAt: Date;
@@ -18,11 +25,12 @@ export class RoomRepository {
         
         // Handle Postgres unique_violation error specifically if needed by caller
         if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
-            throw error;
+            throw new DatabaseError('Ein Eintrag mit diesem Schlüssel existiert bereits.', '23505');
         }
         
         const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Datenbank-Fehler: ${message}. Bitte versuche es später erneut.`);
+        // Sanitize message for the user but keep it informative
+        throw new DatabaseError('Datenbank-Fehler. Bitte versuche es später erneut.');
     }
 
     async createRoom(code: string): Promise<void> {
