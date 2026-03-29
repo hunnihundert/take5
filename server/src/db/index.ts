@@ -46,16 +46,21 @@ export async function syncSchema(): Promise<void> {
     // Create tables if they don't exist
     await pool.query(`
         CREATE TABLE IF NOT EXISTS rooms (
-            code VARCHAR(6) PRIMARY KEY,
+            code VARCHAR(12) PRIMARY KEY,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             active_story_id UUID
         )
     `);
 
+    // Ensure code column is VARCHAR(12) if table already existed with VARCHAR(6)
+    await pool.query(`
+        ALTER TABLE rooms ALTER COLUMN code TYPE VARCHAR(12);
+    `);
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS stories (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            room_code VARCHAR(6) NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+            room_code VARCHAR(12) NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
             key VARCHAR(50),
             summary TEXT NOT NULL,
             story_points INTEGER,
@@ -65,6 +70,11 @@ export async function syncSchema(): Promise<void> {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             position INTEGER NOT NULL DEFAULT 0
         )
+    `);
+
+    // Ensure room_code column is VARCHAR(12) if table already existed with VARCHAR(6)
+    await pool.query(`
+        ALTER TABLE stories ALTER COLUMN room_code TYPE VARCHAR(12);
     `);
 
     console.log('Database schema synchronized');

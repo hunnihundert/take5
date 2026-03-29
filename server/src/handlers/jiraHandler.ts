@@ -19,10 +19,14 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        // Store the config
-        await roomManager.setJiraConfig(roomCode, config);
-        io.to(roomCode).emit('jiraConfigured', { baseUrl: config.baseUrl });
-        console.log(`Jira configured for room ${roomCode}: ${config.baseUrl}`);
+        try {
+            // Store the config
+            await roomManager.setJiraConfig(roomCode, config);
+            io.to(roomCode).emit('jiraConfigured', { baseUrl: config.baseUrl });
+            console.log(`Jira configured for room ${roomCode}: ${config.baseUrl}`);
+        } catch (error: any) {
+            socket.emit('error', error.message || 'Fehler beim Speichern der Jira-Konfiguration');
+        }
     });
 
     socket.on('disconnectJira', async () => {
@@ -34,9 +38,13 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        await roomManager.clearJiraConfig(roomCode);
-        io.to(roomCode).emit('jiraDisconnected');
-        console.log(`Jira disconnected for room ${roomCode}`);
+        try {
+            await roomManager.clearJiraConfig(roomCode);
+            io.to(roomCode).emit('jiraDisconnected');
+            console.log(`Jira disconnected for room ${roomCode}`);
+        } catch (error: any) {
+            socket.emit('error', error.message || 'Fehler beim Trennen von Jira');
+        }
     });
 
     socket.on('addStoryByLink', async (url: string) => {
@@ -76,14 +84,18 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        // Add to room (checks for duplicates)
-        const addedStory = await roomManager.addJiraStory(roomCode, result.story);
-        if (!addedStory) {
-            socket.emit('jiraError', { code: 'DUPLICATE', message: `Story ${parsed.issueKey} ist bereits vorhanden` });
-            return;
-        }
+        try {
+            // Add to room (checks for duplicates)
+            const addedStory = await roomManager.addJiraStory(roomCode, result.story);
+            if (!addedStory) {
+                socket.emit('jiraError', { code: 'DUPLICATE', message: `Story ${parsed.issueKey} ist bereits vorhanden` });
+                return;
+            }
 
-        io.to(roomCode).emit('storyAdded', addedStory);
+            io.to(roomCode).emit('storyAdded', addedStory);
+        } catch (error: any) {
+            socket.emit('error', error.message || 'Fehler beim Hinzufügen der Jira-Story');
+        }
     });
 
     socket.on('fetchJiraStories', async (jql: string) => {
@@ -107,20 +119,24 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        // Add all fetched stories
-        let addedCount = 0;
-        for (const storyData of result.stories) {
-            const addedStory = await roomManager.addJiraStory(roomCode, storyData);
-            if (addedStory) {
-                addedCount++;
+        try {
+            // Add all fetched stories
+            let addedCount = 0;
+            for (const storyData of result.stories) {
+                const addedStory = await roomManager.addJiraStory(roomCode, storyData);
+                if (addedStory) {
+                    addedCount++;
+                }
             }
-        }
 
-        // Broadcast updated stories list
-        io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
+            // Broadcast updated stories list
+            io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
 
-        if (addedCount === 0 && result.stories.length > 0) {
-            socket.emit('jiraError', { code: 'ALL_DUPLICATES', message: 'Alle gefundenen Stories sind bereits vorhanden' });
+            if (addedCount === 0 && result.stories.length > 0) {
+                socket.emit('jiraError', { code: 'ALL_DUPLICATES', message: 'Alle gefundenen Stories sind bereits vorhanden' });
+            }
+        } catch (error: any) {
+            socket.emit('error', error.message || 'Fehler beim Importieren der Jira-Stories');
         }
     });
 
@@ -139,20 +155,24 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             return;
         }
 
-        // Refresh existing Jira stories
-        const stories = roomManager.getStories(roomCode);
-        const jiraStories = stories.filter(s => !s.isManual && s.key);
+        try {
+            // Refresh existing Jira stories
+            const stories = roomManager.getStories(roomCode);
+            const jiraStories = stories.filter(s => !s.isManual && s.key);
 
-        for (const story of jiraStories) {
-            const result = await JiraService.fetchIssue(jiraConfig, story.key!);
-            if (result.story) {
-                // Update story points if changed
-                if (result.story.storyPoints !== undefined && result.story.storyPoints !== story.storyPoints) {
-                    await roomManager.applyStoryPoints(roomCode, story.id, result.story.storyPoints);
+            for (const story of jiraStories) {
+                const result = await JiraService.fetchIssue(jiraConfig, story.key!);
+                if (result.story) {
+                    // Update story points if changed
+                    if (result.story.storyPoints !== undefined && result.story.storyPoints !== story.storyPoints) {
+                        await roomManager.applyStoryPoints(roomCode, story.id, result.story.storyPoints);
+                    }
                 }
             }
-        }
 
-        io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
+            io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
+        } catch (error: any) {
+            socket.emit('error', error.message || 'Fehler beim Aktualisieren der Jira-Stories');
+        }
     });
 };

@@ -89,7 +89,8 @@ export class RoomManager {
         if (error.code === '23505') {
           return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
         }
-        throw error;
+        // For other errors, return the user-friendly message from the repository
+        return { success: false, error: error.message || 'Datenbank-Fehler' };
       }
     }
 
@@ -104,21 +105,25 @@ export class RoomManager {
 
     // If not in memory, try to load from DB
     if (!room && this.repository) {
-      const dbRoom = await this.repository.getRoomWithStories(normalizedCode);
+      try {
+        const dbRoom = await this.repository.getRoomWithStories(normalizedCode);
 
-      if (dbRoom) {
-        // Hydrate room from DB - empty players Map
-        room = {
-          code: dbRoom.code,
-          players: new Map(),
-          revealed: false,
-          createdAt: dbRoom.createdAt,
-          stories: dbRoom.stories,
-          activeStoryId: dbRoom.activeStoryId ?? undefined,
-          jiraConfig: dbRoom.jiraConfig,
-        };
-        this.rooms.set(normalizedCode, room);
-        logger.info(`Room ${normalizedCode} hydrated from database`);
+        if (dbRoom) {
+          // Hydrate room from DB - empty players Map
+          room = {
+            code: dbRoom.code,
+            players: new Map(),
+            revealed: false,
+            createdAt: dbRoom.createdAt,
+            stories: dbRoom.stories,
+            activeStoryId: dbRoom.activeStoryId ?? undefined,
+            jiraConfig: dbRoom.jiraConfig,
+          };
+          this.rooms.set(normalizedCode, room);
+          logger.info(`Room ${normalizedCode} hydrated from database`);
+        }
+      } catch (error: any) {
+        return { success: false, error: error.message || 'Datenbank-Fehler' };
       }
     }
 
@@ -299,7 +304,12 @@ export class RoomManager {
 
     // Persist to DB first
     if (this.repository) {
-      await this.repository.addStory(roomCode, story);
+      try {
+        await this.repository.addStory(roomCode, story);
+      } catch (error: any) {
+        logger.error(`Failed to add story to DB: ${error.message}`);
+        throw error; // Let the handler catch it
+      }
     }
 
     room.stories.push(story);
@@ -324,7 +334,12 @@ export class RoomManager {
 
     // Persist to DB first
     if (this.repository) {
-      await this.repository.addStory(roomCode, story);
+      try {
+        await this.repository.addStory(roomCode, story);
+      } catch (error: any) {
+        logger.error(`Failed to add Jira story to DB: ${error.message}`);
+        throw error;
+      }
     }
 
     room.stories.push(story);
@@ -340,7 +355,12 @@ export class RoomManager {
 
     // Remove from DB first
     if (this.repository) {
-      await this.repository.removeStory(storyId);
+      try {
+        await this.repository.removeStory(storyId);
+      } catch (error: any) {
+        logger.error(`Failed to remove story from DB: ${error.message}`);
+        throw error;
+      }
     }
 
     room.stories.splice(index, 1);
@@ -349,7 +369,12 @@ export class RoomManager {
     if (room.activeStoryId === storyId) {
       room.activeStoryId = undefined;
       if (this.repository) {
-        await this.repository.setActiveStory(roomCode, null);
+        try {
+          await this.repository.setActiveStory(roomCode, null);
+        } catch (error: any) {
+          logger.error(`Failed to clear active story in DB: ${error.message}`);
+          // Don't throw here, as the story itself was already removed from DB and memory
+        }
       }
     }
 
@@ -363,7 +388,12 @@ export class RoomManager {
     if (storyId === null) {
       room.activeStoryId = undefined;
       if (this.repository) {
-        await this.repository.setActiveStory(roomCode, null);
+        try {
+          await this.repository.setActiveStory(roomCode, null);
+        } catch (error: any) {
+          logger.error(`Failed to clear active story in DB: ${error.message}`);
+          throw error;
+        }
       }
       return null;
     }
@@ -373,7 +403,12 @@ export class RoomManager {
 
     room.activeStoryId = storyId;
     if (this.repository) {
-      await this.repository.setActiveStory(roomCode, storyId);
+      try {
+        await this.repository.setActiveStory(roomCode, storyId);
+      } catch (error: any) {
+        logger.error(`Failed to set active story in DB: ${error.message}`);
+        throw error;
+      }
     }
     return story;
   }
@@ -391,12 +426,24 @@ export class RoomManager {
     const story = room.stories.find(s => s.id === storyId);
     if (!story) return null;
 
+    // Keep old values in case DB update fails
+    const oldPoints = story.storyPoints;
+    const oldVoted = story.voted;
+
     story.storyPoints = points;
     story.voted = true;
 
     // Persist to DB
     if (this.repository) {
-      await this.repository.updateStoryPoints(storyId, points);
+      try {
+        await this.repository.updateStoryPoints(storyId, points);
+      } catch (error: any) {
+        logger.error(`Failed to update story points in DB: ${error.message}`);
+        // Revert memory state
+        story.storyPoints = oldPoints;
+        story.voted = oldVoted;
+        throw error;
+      }
     }
 
     return story;
@@ -408,8 +455,13 @@ export class RoomManager {
 
     // Clear from DB first
     if (this.repository) {
-      await this.repository.clearStories(roomCode);
-      await this.repository.setActiveStory(roomCode, null);
+      try {
+        await this.repository.clearStories(roomCode);
+        await this.repository.setActiveStory(roomCode, null);
+      } catch (error: any) {
+        logger.error(`Failed to clear stories in DB: ${error.message}`);
+        throw error;
+      }
     }
 
     room.stories = [];
