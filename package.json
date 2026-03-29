@@ -20,6 +20,7 @@
     "db:push": "npm run db:push --workspace=server"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "concurrently": "^8.2.2",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1"

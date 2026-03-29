@@ -49,6 +49,7 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 *.lcov
+test-results/
 
 # Temporary files
 *.tmp
