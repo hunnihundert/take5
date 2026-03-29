@@ -305,11 +305,7 @@ export class RoomManager {
 
     // Persist to DB first
     if (this.repository) {
-      try {
-        await this.repository.addStory(roomCode, story);
-      } catch (error: unknown) {
-        throw error;
-      }
+      await this.repository.addStory(roomCode, story);
     }
 
     room.stories.push(story);
@@ -334,11 +330,7 @@ export class RoomManager {
 
     // Persist to DB first
     if (this.repository) {
-      try {
-        await this.repository.addStory(roomCode, story);
-      } catch (error: unknown) {
-        throw error;
-      }
+      await this.repository.addStory(roomCode, story);
     }
 
     room.stories.push(story);
@@ -354,11 +346,7 @@ export class RoomManager {
 
     // Remove from DB first
     if (this.repository) {
-      try {
-        await this.repository.removeStory(storyId);
-      } catch (error: unknown) {
-        throw error;
-      }
+      await this.repository.removeStory(storyId);
     }
 
     room.stories.splice(index, 1);
@@ -398,11 +386,7 @@ export class RoomManager {
 
     room.activeStoryId = storyId;
     if (this.repository) {
-      try {
-        await this.repository.setActiveStory(roomCode, storyId);
-      } catch (error: unknown) {
-        throw error;
-      }
+      await this.repository.setActiveStory(roomCode, storyId);
     }
     return story;
   }
@@ -448,12 +432,8 @@ export class RoomManager {
 
     // Clear from DB first
     if (this.repository) {
-      try {
-        await this.repository.clearStories(roomCode);
-        await this.repository.setActiveStory(roomCode, null);
-      } catch (error: unknown) {
-        throw error;
-      }
+      await this.repository.clearStories(roomCode);
+      await this.repository.setActiveStory(roomCode, null);
     }
 
     room.stories = [];
