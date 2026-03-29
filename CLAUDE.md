@@ -23,7 +23,10 @@ npm run build           # Builds both client and server
 npm start               # Runs server from dist/
 
 # Tests
-npm run test --workspace=server   # Run server tests (vitest)
+npm run test            # Run both client and server tests
+npm run test:server     # Run server tests (vitest)
+npm run test:client     # Run client tests (vitest)
+npm run test:e2e        # Run end-to-end tests (playwright)
 ```
 
 ## Architecture

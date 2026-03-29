@@ -49,7 +49,10 @@ If `DATABASE_URL` is provided in `.env`, the server uses PostgreSQL. Otherwise, 
 - **Push Schema (Quick Update)**: `npm run db:push --workspace=server`
 
 ### Testing
-- **Server Tests**: `npm run test --workspace=server` (Vitest)
+- **All Unit & Integration Tests**: `npm run test`
+- **Server Tests**: `npm run test:server` (Vitest)
+- **Client Tests**: `npm run test:client` (Vitest + React Testing Library)
+- **E2E Tests**: `npm run test:e2e` (Playwright)
 
 ## Development Conventions
 
