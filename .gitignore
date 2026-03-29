@@ -8,6 +8,8 @@ client/dist/
 server/dist/
 build/
 *.tsbuildinfo
+*.d.ts
+!client/src/vite-env.d.ts
 
 # Environment variables
 .env
