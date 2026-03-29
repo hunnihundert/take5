@@ -36,14 +36,14 @@ ENV PORT=8080
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 expressjs
 
-# Copy root workspace files
+# Copy root workspace files and only necessary workspace package.json files
 COPY package.json package-lock.json ./
-COPY client/package.json ./client/
 COPY server/package.json ./server/
 COPY shared/package.json ./shared/
 
-# Install only production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Install only production dependencies for the server (and its workspace dependencies)
+# We use --workspace=server to target only the backend
+RUN npm ci --omit=dev --workspace=server && npm cache clean --force
 
 # Copy the built artifacts from the builder stage
 COPY --from=builder /app/shared/dist ./shared/dist
