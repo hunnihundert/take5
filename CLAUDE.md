@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Planning Poker (Take5) - A real-time collaborative estimation tool for agile teams. Monorepo with React frontend and Node.js/Express backend communicating via Socket.io.
+Planning Poker (Take5) - A real-time collaborative estimation tool for agile teams. Monorepo with React frontend and Node.js/Express backend communicating via Socket.io. Optional PostgreSQL persistence via Drizzle ORM. Docker-ready with multi-stage builds.
 
 ## Commands
 
@@ -17,67 +17,108 @@ npm run dev:client      # Vite dev server on port 3000
 npm run dev:server      # tsx watch on port 3001
 
 # Build for production
-npm run build           # Builds both client and server
+npm run build           # Builds shared, client, and server (in order)
+npm run build:shared    # Build shared types only
+npm run build:client    # Build client only
+npm run build:server    # Build server only
 
 # Start production server
 npm start               # Runs server from dist/
 
 # Tests
-npm run test            # Run both client and server tests
-npm run test:server     # Run server tests (vitest)
-npm run test:client     # Run client tests (vitest)
+npm run test            # Run both client and server tests (vitest)
+npm run test:server     # Run server tests
+npm run test:client     # Run client tests
 npm run test:e2e        # Run end-to-end tests (playwright)
+
+# Database (requires DATABASE_URL)
+npm run db:push --workspace=server      # Push schema directly
+npm run db:generate --workspace=server  # Generate migrations
+npm run db:migrate --workspace=server   # Run migrations
 ```
 
 ## Architecture
 
 ### Monorepo Structure
 - **`/client`** - React 18 + Vite + Tailwind CSS frontend
-- **`/server`** - Express + Socket.io backend
-- **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig interfaces
+- **`/server`** - Express + Socket.io backend with optional PostgreSQL (Drizzle ORM)
+- **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig, CardValue
+- **`/e2e`** - Playwright end-to-end tests
 
 ### Real-time Communication
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client → Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`
+**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`
 
-**Client → Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
+**Client -> Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
 
-**Client → Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
+**Client -> Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
 
-**Server → Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
+**Server -> Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
 
-**Server → Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
+**Server -> Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
 
-**Server → Client (Jira):** `jiraConfigured`, `jiraDisconnected`, `jiraError`
+**Server -> Client (Jira):** `jiraConfigured`, `jiraDisconnected`, `jiraError`
 
 ### State Management
-- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class - no database, all state is ephemeral
-- **Frontend:** React hooks with `useSocket` custom hook for Socket.io connection
+- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set).
+- **Frontend:** React Context (`GameContext`) dispatching to specialized socket hooks (`useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). Includes 10-minute heartbeat for Render.com keep-alive.
 
 ### Key Files
-- `server/src/roomManager.ts` - Core game logic (room creation, player management, voting)
-- `server/src/index.ts` - Express server and Socket.io event handlers
-- `server/src/services/jiraService.ts` - Jira API integration for story import/sync
-- `client/src/hooks/useSocket.ts` - Socket connection management
+
+**Server:**
+- `server/src/index.ts` - Express server, Socket.io setup, CORS, static file serving, health endpoint
+- `server/src/roomManager.ts` - Core game logic (room creation, player management, voting, DB hydration)
+- `server/src/handlers/roomHandler.ts` - Room socket events (create, join, avatar, disconnect)
+- `server/src/handlers/gameHandler.ts` - Game socket events (card select, reveal, new round, observer, emoji)
+- `server/src/handlers/storyHandler.ts` - Story socket events (add, remove, select, apply points, clear)
+- `server/src/handlers/jiraHandler.ts` - Jira socket events (configure, disconnect, import, fetch, refresh)
+- `server/src/services/jiraService.ts` - Jira REST API integration (fetch issues, search, sync points)
+- `server/src/db/schema.ts` - Drizzle schema (rooms + stories tables)
+- `server/src/db/repository.ts` - Database query layer
+- `server/src/db/index.ts` - Drizzle ORM initialization, `isDatabaseEnabled()` check
+- `server/src/utils/logger.ts` - Console logger (dev-only)
+
+**Client:**
+- `client/src/context/GameContext.tsx` - Central state management via React Context
+- `client/src/hooks/useSocket.ts` - Base Socket.io connection
+- `client/src/hooks/useRoomSocket.ts` - Room lifecycle events
+- `client/src/hooks/useGameSocket.ts` - Game mechanic events
+- `client/src/hooks/useStorySocket.ts` - Story CRUD events
+- `client/src/hooks/useJiraSocket.ts` - Jira integration events
 - `client/src/components/GameRoom.tsx` - Main game interface
-- `shared/src/index.ts` - Shared TypeScript interfaces (Player, Story, RoomState, JiraConfig)
+- `client/src/components/PokerTable.tsx` - Circular player layout with consensus detection
+- `client/src/components/StoryList.tsx` - Story sidebar with Jira import
+- `client/src/utils/linkRenderer.tsx` - Renders HTTP/HTTPS URLs as clickable links in story text
+- `client/src/utils/confetti.ts` - Canvas-confetti wrapper for consensus celebrations
+
+**Shared:**
+- `shared/src/index.ts` - TypeScript interfaces (Player, Story, RoomState, JiraConfig, CardValue)
 
 ## Environment Variables
 
 **Server:**
 - `PORT` - Server port (default: 3001)
-- `ALLOWED_ORIGINS` - Comma-separated CORS origins
 - `NODE_ENV` - development/production
+- `DATABASE_URL` - PostgreSQL connection string (optional; enables room/story persistence)
+- `ALLOWED_ORIGINS` - Comma-separated CORS origins
 
 **Client:**
-- `VITE_SOCKET_URL` - Socket.io server URL (defaults to localhost:3001 in dev, origin in prod)
+- `VITE_SOCKET_URL` - Socket.io server URL (defaults to localhost:3001 in dev, current origin in prod)
 
 ## Game-Specific Logic
 
 - **Card values:** Fibonacci sequence (1, 2, 3, 5, 8, 13)
-- **Room codes:** 6-character uppercase alphanumeric
+- **Room codes:** 6-character uppercase alphanumeric (auto-generated), or custom 3-12 character codes
 - **Moderator:** First player becomes moderator; auto-reassigns on disconnect
 - **Auto-reveal:** Cards reveal automatically when all non-observer players vote
 - **Consensus:** Confetti animation triggers when all players select the same card
+- **Name uniqueness:** Duplicate player names are rejected per room
 - **Jira Integration:** Stories can be imported via URL or JQL; story points sync back to Jira
+- **Clickable links:** URLs in manual story summaries render as clickable links
+- **Database persistence:** When DATABASE_URL is set, rooms and stories survive player disconnects and can be rehydrated
+
+## Deployment
+
+- **Docker:** Multi-stage Dockerfile (Node 20 Alpine). Builder compiles all workspaces; runner serves static client + Express backend on port 8080 with tini for signal handling.
+- **Render.com:** Client includes a 10-minute heartbeat to `/api/health` to keep free-tier instances alive.
