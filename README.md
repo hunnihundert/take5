@@ -1,438 +1,454 @@
-# Planning Poker Web-Anwendung
+# Planning Poker Web Application
 
-Eine moderne, Echtzeit Planning Poker Anwendung für agile Teams, gebaut mit React, TypeScript, Node.js und Socket.io.
-
-## Neueste Verbesserungen
-
-✅ **Jira Integration** - Stories direkt aus Jira importieren und Story Points zurück synchronisieren<br>
-✅ **Story-Management** - Stories zur Abstimmung hinzufügen, auswählen und verwalten<br>
-✅ **JQL-Import** - Mehrere Stories auf einmal via JQL-Abfragen importieren<br>
-✅ **Emoji werfen** - Rechtsklick auf Spieler um lustige Emojis zu werfen mit Bogen-Animation<br>
-✅ **Spieler-Avatare** - Eigenes Profilbild hochladen mit Zuschneidefunktion<br>
-✅ **Poker-Tisch Ansicht** - Spieler werden um einen virtuellen Pokertisch angeordnet<br>
-✅ **Kompaktes Kartendeck** - Reduziert auf 1, 2, 3, 5, 8, 13 für schnellere Entscheidungen<br>
-✅ **Dezente Kartenauswahl** - Gewählte Karte mit sanftem blauen Hintergrund<br>
-✅ **Persistente Hervorhebung** - Ausgewählte Karte bleibt dauerhaft dezent hervorgehoben<br>
-✅ **Verdeckte Karten** - Gewählte Karten werden in der Spielerliste als verschlossene Karte angezeigt<br>
-✅ **Flip-Animationen** - Sanfte Animationen beim Aufdecken der Karten<br>
-✅ **Keine Namensduplikate** - Server-seitige Validierung verhindert doppelte Spielernamen im Raum<br>
-✅ **Beobachter-Modus** - Spieler können als Beobachter teilnehmen ohne bei der Abstimmung mitzuzählen<br>
-✅ **Konfetti bei Konsens** - Feier-Animation wenn alle Spieler die gleiche Karte wählen<br>
-✅ **Shareable Links** - URLs mit Raum-Code können direkt geteilt werden<br>
-✅ **Copy Link Button** - Ein-Klick zum Kopieren des Raum-Links<br>
+A modern, real-time Planning Poker application for agile teams, built with React, TypeScript, Node.js, and Socket.io. Optional PostgreSQL persistence via Drizzle ORM. Docker-ready.
 
 ## Features
 
 ### Jira Integration
-🔗 **Jira-Anbindung** - Verbinde deinen Raum mit deiner Jira-Instanz<br>
-📥 **Story-Import per Link** - Füge Jira-Issues durch Einfügen des Links hinzu<br>
-🔍 **JQL-Import** - Importiere mehrere Stories mit JQL-Abfragen<br>
-📤 **Story Points Sync** - Schreibe geschätzte Story Points zurück nach Jira<br>
-📝 **Manuelle Stories** - Füge auch Stories ohne Jira hinzu<br>
-🎯 **Aktive Story-Anzeige** - Banner zeigt die aktuell zu schätzende Story<br>
-✅ **Fortschritts-Tracking** - Übersicht über geschätzte vs. offene Stories<br>
+- **Jira Connection** - Connect your room to your Jira instance
+- **Story Import via Link** - Add Jira issues by pasting the link
+- **JQL Import** - Import multiple stories using JQL queries
+- **Story Points Sync** - Write estimated story points back to Jira
+- **Manual Stories** - Add stories without Jira too
+- **Active Story Banner** - Banner shows the story currently being estimated
+- **Progress Tracking** - Overview of estimated vs. open stories
+- **Clickable Links** - URLs in story descriptions are rendered as clickable links
 
-### Kernfunktionen
-✨ **Echtzeit-Synchronisation** - Alle Spieler sehen Live-Updates dank Socket.io<br>
-🎯 **Intuitive Benutzeroberfläche** - Responsive Design für Desktop und Mobile<br>
-🎴 **Kompaktes Kartendeck** - Werte: 1, 2, 3, 5, 8, 13 (Fibonacci-basiert)<br>
-🎭 **Emoji werfen** - Rechtsklick auf Spieler um Emojis zu werfen (Bogen-Animation mit Bounce-Effekt)<br>
-🖼️ **Spieler-Avatare** - Eigenes Profilbild hochladen und zuschneiden<br>
-🎰 **Poker-Tisch** - Spieler werden kreisförmig um einen virtuellen Pokertisch angeordnet<br>
-🌟 **Dezente Hervorhebung** - Gewählte Karte mit sanftem blauen Hintergrund und Ring<br>
-🔒 **Verdeckte Karten** - Gewählte Karten werden als verschlossene Karte angezeigt<br>
-🎬 **Sanfte Animationen** - Flip-Animation beim Aufdecken der Karten<br>
-👥 **Unbegrenzte Spieler** - Erstelle Räume und lade dein Team ein<br>
-👁️ **Beobachter-Modus** - Beobachte ohne an der Abstimmung teilzunehmen<br>
-🚫 **Keine doppelten Namen** - Server-seitige Validierung verhindert Namensduplikate<br>
-🔒 **Moderator-Kontrolle** - Raum-Ersteller kann Karten aufdecken und neue Runden starten<br>
-📊 **Automatische Durchschnittsberechnung** - Sofortige Auswertung nach dem Aufdecken<br>
-🎉 **Konfetti bei Konsens** - Feier-Animation wenn alle sich einig sind<br>
-🔗 **Shareable Links** - Direkte Raum-Links mit URL-Parametern<br>
-📋 **Copy Link** - Ein-Klick Link-Kopieren für einfaches Teilen<br>
-🎨 **Modernes UI** - Erstellt mit Tailwind CSS<br>
+### Core Features
+- **Real-time Sync** - All players see live updates via Socket.io
+- **Compact Card Deck** - Values: 1, 2, 3, 5, 8, 13 (Fibonacci-based)
+- **Custom Room Codes** - Create rooms with a custom code (3-12 chars) or auto-generated (6 chars)
+- **Emoji Throwing** - Right-click a player to throw emojis (arc animation with bounce effect)
+- **Player Avatars** - Upload and crop your own profile picture
+- **Poker Table** - Players arranged in a circle around a virtual poker table
+- **Subtle Highlight** - Selected card shown with a soft blue background and ring
+- **Hidden Cards** - Selected cards shown as face-down until revealed
+- **Smooth Animations** - Flip animation when cards are revealed
+- **Observer Mode** - Watch without participating in voting
+- **No Duplicate Names** - Server-side validation prevents name conflicts
+- **Moderator Controls** - Room creator can reveal cards and start new rounds
+- **Auto Average** - Instant result calculation after reveal
+- **Auto Reveal** - Cards automatically reveal when all active players have voted
+- **Confetti on Consensus** - Celebration animation when everyone agrees
+- **Shareable Links** - Direct room links with URL parameters
+- **Copy Link** - One-click link copying for easy sharing
 
-## Technologie-Stack
+### Persistence (optional)
+- **PostgreSQL Database** - Rooms and stories survive player disconnects
+- **Auto Hydration** - Empty rooms reload from the database when players rejoin
+- **Without Database** - Works entirely in-memory (rooms are ephemeral)
+
+## Tech Stack
 
 ### Frontend
-- **React 18** mit TypeScript
-- **Vite** für schnelles Development
-- **Tailwind CSS** für Styling
-- **Socket.io Client** für Echtzeit-Kommunikation
-- **Canvas Confetti** für Konfetti-Animationen
+- **React 18** with TypeScript
+- **Vite** for fast development
+- **Tailwind CSS** for styling
+- **Socket.io Client** for real-time communication
+- **Canvas Confetti** for confetti animations
+- **React Context** (GameContext) for state management
 
 ### Backend
-- **Node.js** mit Express
-- **Socket.io** für WebSocket-Verbindungen
-- **TypeScript** für Type-Safety
-- **In-Memory Storage** (keine Datenbank erforderlich)
+- **Node.js** with Express
+- **Socket.io** for WebSocket connections
+- **TypeScript** for type safety
+- **Drizzle ORM** + **PostgreSQL** for optional persistence
+- **In-Memory Storage** as fallback (no database required)
 
-## Projektstruktur
+### Shared
+- **@taking5/shared** - Shared TypeScript types (Player, Story, RoomState, JiraConfig, CardValue)
+
+### Testing
+- **Vitest** for unit and integration tests (client + server)
+- **React Testing Library** for hook tests
+- **Playwright** for end-to-end tests
+- **pg-mem** for database tests without a real PostgreSQL instance
+
+## Project Structure
 
 ```
-takeFive/
-├── client/                 # React Frontend
+take5/
+├── client/                      # React Frontend
 │   ├── src/
-│   │   ├── components/    # React Komponenten
-│   │   │   ├── Home.tsx              # Startseite
-│   │   │   ├── GameRoom.tsx          # Spielraum
-│   │   │   ├── PokerTable.tsx        # Poker-Tisch Ansicht
-│   │   │   ├── CardDeck.tsx          # Kartendeck
-│   │   │   ├── PlayerList.tsx        # Spielerliste
-│   │   │   ├── AvatarEditor.tsx      # Avatar-Zuschneidung
-│   │   │   ├── EmojiPicker.tsx       # Emoji-Auswahl
-│   │   │   ├── FlyingEmoji.tsx       # Fliegende Emoji-Animation
-│   │   │   ├── PlayerContextMenu.tsx # Rechtsklick-Menü
-│   │   │   ├── Results.tsx           # Ergebnisanzeige
-│   │   │   ├── StoryList.tsx         # Story-Liste mit Jira-Import
-│   │   │   ├── ActiveStoryBanner.tsx # Aktuelle Story-Anzeige
-│   │   │   ├── JiraConfigModal.tsx   # Jira-Konfiguration
-│   │   │   ├── JqlImportSection.tsx  # JQL-Import
-│   │   │   └── ApplyPointsDialog.tsx # Story Points vergeben
-│   │   ├── hooks/         # Custom React Hooks
-│   │   │   └── useSocket.ts       # Socket.io Hook
-│   │   ├── types/         # TypeScript Typen
-│   │   ├── utils/         # Hilfsfunktionen
-│   │   │   └── confetti.ts        # Konfetti-Animation
-│   │   ├── App.tsx        # Haupt-App-Komponente
-│   │   ├── main.tsx       # Entry Point
-│   │   └── index.css      # Globale Styles
-│   ├── index.html
+│   │   ├── components/          # React components
+│   │   │   ├── Home.tsx                 # Landing page (create/join room)
+│   │   │   ├── GameRoom.tsx             # Main game room
+│   │   │   ├── PokerTable.tsx           # Poker table (circular layout)
+│   │   │   ├── CardDeck.tsx             # Card deck (1,2,3,5,8,13)
+│   │   │   ├── PlayerList.tsx           # Player list with avatars
+│   │   │   ├── Results.tsx              # Results display with average
+│   │   │   ├── AvatarEditor.tsx         # Avatar cropping tool
+│   │   │   ├── PlayerContextMenu.tsx    # Right-click context menu
+│   │   │   ├── EmojiPicker.tsx          # Emoji picker (9 categories)
+│   │   │   ├── FlyingEmoji.tsx          # Flying emoji animation
+│   │   │   ├── StoryList.tsx            # Story sidebar with import
+│   │   │   ├── ActiveStoryBanner.tsx    # Active story display
+│   │   │   ├── JiraConfigModal.tsx      # Jira configuration
+│   │   │   ├── JqlImportSection.tsx     # JQL import
+│   │   │   └── ApplyPointsDialog.tsx    # Apply story points dialog
+│   │   ├── context/
+│   │   │   └── GameContext.tsx           # Central state management
+│   │   ├── hooks/                       # Custom React hooks
+│   │   │   ├── useSocket.ts             # Base Socket.io connection
+│   │   │   ├── useRoomSocket.ts         # Room lifecycle events
+│   │   │   ├── useGameSocket.ts         # Game mechanic events
+│   │   │   ├── useStorySocket.ts        # Story CRUD events
+│   │   │   └── useJiraSocket.ts         # Jira integration events
+│   │   ├── utils/
+│   │   │   ├── confetti.ts              # Confetti animation
+│   │   │   └── linkRenderer.tsx         # Clickable URLs in stories
+│   │   ├── types/
+│   │   │   └── index.ts                 # Re-exports from shared
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── index.css
 │   ├── package.json
 │   └── vite.config.ts
-├── server/                # Node.js Backend
+├── server/                      # Node.js Backend
 │   ├── src/
+│   │   ├── handlers/                    # Socket event handlers
+│   │   │   ├── roomHandler.ts           # Room events (create, join, avatar, disconnect)
+│   │   │   ├── gameHandler.ts           # Game events (select, reveal, round, observer, emoji)
+│   │   │   ├── storyHandler.ts          # Story events (add, remove, select, apply, clear)
+│   │   │   ├── jiraHandler.ts           # Jira events (configure, import, fetch, refresh)
+│   │   │   └── types.ts                 # Handler type definitions
 │   │   ├── services/
-│   │   │   └── jiraService.ts # Jira API Integration
-│   │   ├── index.ts       # Server Entry Point
-│   │   ├── roomManager.ts # Raum-Verwaltungslogik
-│   │   └── types.ts       # TypeScript Typen
+│   │   │   └── jiraService.ts           # Jira REST API integration
+│   │   ├── db/                          # Database layer (optional)
+│   │   │   ├── index.ts                 # Drizzle ORM setup, isDatabaseEnabled()
+│   │   │   ├── schema.ts               # Tables: rooms, stories
+│   │   │   └── repository.ts           # Query functions
+│   │   ├── utils/
+│   │   │   └── logger.ts               # Console logger (development only)
+│   │   ├── index.ts                     # Server entry point
+│   │   ├── roomManager.ts              # Room management + DB hydration
+│   │   └── types.ts                     # Socket event type definitions
 │   ├── package.json
 │   └── tsconfig.json
-├── package.json           # Root Package (Workspaces)
-└── README.md
+├── shared/                      # Shared TypeScript types
+│   ├── src/
+│   │   └── index.ts                     # Player, Story, RoomState, JiraConfig, CardValue
+│   └── package.json
+├── e2e/                         # End-to-end tests
+│   └── voting.spec.ts                  # Multi-player voting workflow
+├── Dockerfile                   # Multi-stage Docker build (Node 20 Alpine)
+├── .dockerignore
+├── .env.example                 # Example environment variables
+├── playwright.config.ts         # Playwright configuration
+├── CLAUDE.md                    # Claude Code instructions
+├── GEMINI.md                    # Gemini instructions
+└── package.json                 # Root package (workspaces)
 ```
 
 ## Installation
 
-### Voraussetzungen
-- Node.js (Version 18 oder höher)
-- npm oder yarn
+### Prerequisites
+- Node.js (version 18 or higher)
+- npm
+- PostgreSQL (optional, for room persistence)
 
-### Schritt 1: Repository klonen oder herunterladen
+### Step 1: Clone or download the repository
 
 ```bash
-cd takeFive
+cd take5
 ```
 
-### Schritt 2: Dependencies installieren
+### Step 2: Install dependencies
 
 ```bash
 npm install
 ```
 
-Dies installiert alle Abhängigkeiten für Frontend und Backend dank npm Workspaces.
+This installs all dependencies for frontend, backend, and shared package via npm workspaces.
 
-## Entwicklung
+### Step 3: Environment variables (optional)
 
-### Beide Server gleichzeitig starten (empfohlen)
+```bash
+cp .env.example .env
+```
+
+Configurable variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3001` | Server port |
+| `NODE_ENV` | `development` | Environment |
+| `DATABASE_URL` | _(empty)_ | PostgreSQL connection string (optional) |
+| `ALLOWED_ORIGINS` | _(auto)_ | Comma-separated CORS origins |
+| `VITE_SOCKET_URL` | _(auto)_ | Socket.io server URL (client) |
+
+## Development
+
+### Start both servers simultaneously (recommended)
 
 ```bash
 npm run dev
 ```
 
-Dies startet:
-- Backend-Server auf `http://localhost:3001`
-- Frontend-Dev-Server auf `http://localhost:3000`
+This starts:
+- Backend server at `http://localhost:3001`
+- Frontend dev server at `http://localhost:3000`
 
-### Einzeln starten
+### Start individually
 
-**Nur Backend:**
+**Backend only:**
 ```bash
 npm run dev:server
 ```
 
-**Nur Frontend:**
+**Frontend only:**
 ```bash
 npm run dev:client
 ```
 
 ## Tests
 
-Die Anwendung verfügt über Tests für Frontend, Backend und End-to-End (E2E) Workflows.
-
-### Alle Unit- & Integration-Tests ausführen
+### Run all unit & integration tests
 
 ```bash
 npm run test
 ```
 
-Dies führt die Tests sowohl für den Client als auch für den Server aus.
-
-### Server-Tests
-Die Server-Tests verwenden **Vitest** und prüfen die Raum-Verwaltung, Socket-Handler, Jira-Integration und Datenbank-Integration.
-
+### Server tests
 ```bash
 npm run test:server
 ```
+Uses **Vitest**. Tests room management, socket handlers, Jira integration, and the database repository (with pg-mem).
 
-### Client-Tests
-Die Client-Tests verwenden **Vitest** und die **React Testing Library** für die Verifizierung von Hooks und Context-Providern.
-
+### Client tests
 ```bash
 npm run test:client
 ```
+Uses **Vitest** and **React Testing Library**. Tests hooks and context providers.
 
-### E2E-Tests
-End-to-End Tests werden mit **Playwright** durchgeführt und testen den gesamten Abstimmungsprozess in einem echten Browser.
-
+### E2E tests
 ```bash
 npm run test:e2e
 ```
+Uses **Playwright**. Tests the multi-player voting workflow in real browsers (create room, add story, vote, reveal, new round).
 
-## Produktion
+## Production
 
-### Frontend bauen
+### Build
 
 ```bash
 npm run build
 ```
 
-Das erstellt optimierte Produktions-Dateien im `client/dist` Ordner.
+Builds all three packages (shared -> client -> server) in the correct order.
 
-### Datenbank-Update (WICHTIG)
-
-Wenn du PostgreSQL verwendest (via `DATABASE_URL`), musst du bei Schema-Änderungen (z.B. Verlängerung der Raum-Codes) die Datenbank aktualisieren:
-
-```bash
-# Schema direkt pushen (empfohlen für schnelle Updates)
-npm run db:push --workspace=server
-
-# ODER Migrations generieren und anwenden
-npm run db:generate --workspace=server
-npm run db:migrate --workspace=server
-```
-
-### Server starten
+### Start server
 
 ```bash
 npm start
 ```
 
-Startet den Backend-Server auf Port 3001.
+The server serves the built client files as static assets.
 
-## Verwendung
+### Docker
 
-### 1. Raum erstellen
-1. Öffne die Anwendung im Browser (`http://localhost:3000`)
-2. Klicke auf "Neuen Raum erstellen"
-3. Gib deinen Namen ein
-4. Du erhältst einen 6-stelligen Raum-Code
-5. Teile den Code mit deinem Team
+```bash
+docker build -t take5 .
+docker run -p 8080:8080 take5
+```
 
-### 2. Raum beitreten
-1. Klicke auf "Raum beitreten"
-2. Gib deinen Namen und den Raum-Code ein
-3. Klicke auf "Beitreten"
+The multi-stage build (Node 20 Alpine) compiles all workspaces and starts the server on port 8080 with tini for signal handling.
 
-**Oder mit direktem Link:**
-1. Öffne einen geteilten Link (z.B. `http://localhost:3000?room=ABC123`)
-2. Gib nur deinen Namen ein (Raum-Code ist bereits vorausgefüllt)
-3. Klicke auf "Beitreten"
+With PostgreSQL persistence:
+```bash
+docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:pw@host:5432/db take5
+```
 
-### 3. Raum teilen
-- **Copy Link Button**: Klicke im Spielraum auf "Link kopieren" neben dem Raum-Code
-- Der Link wird in die Zwischenablage kopiert
-- Teile den Link mit deinem Team per E-Mail, Chat, etc.
-- Team-Mitglieder können direkt über den Link beitreten
+### Database setup (optional)
 
-### 4. Spielen
-- **Karte wählen**: Klicke auf eine der Karten im Deck
-- **Warten**: Alle Spieler sehen, wer bereits gewählt hat (✓ und verdeckte Karte)
-- **Automatisches Aufdecken**: Wenn alle aktiven Spieler gewählt haben, werden die Karten automatisch aufgedeckt
-- **Manuelles Aufdecken**: Der Moderator kann jederzeit "Karten aufdecken" klicken
-- **Ergebnisse**: Nach dem Aufdecken siehst du alle gewählten Karten und den Durchschnitt
-- **Konsens-Feier**: Wenn alle die gleiche Karte wählen, erscheint Konfetti
-- **Neue Runde**: Der Moderator startet eine neue Runde mit "Neue Runde starten"
+To use PostgreSQL:
 
-### 5. Beobachter-Modus
-- **Aktivieren**: Klicke auf "Beobachter-Modus" im Header
-- **Deaktivieren**: Klicke auf "Aktiv teilnehmen" um wieder mitzuspielen
-- **Verhalten**:
-  - Als Beobachter kannst du keine Karten wählen
-  - Beobachter werden nicht bei der Durchschnittsberechnung berücksichtigt
-  - Beobachter zählen nicht für das automatische Aufdecken
-  - Du siehst alle Ergebnisse wie ein aktiver Spieler
+```bash
+# Push schema directly (recommended for quick updates)
+npm run db:push --workspace=server
 
-### 6. Avatar ändern
-- **Hochladen**: Klicke auf deinen Avatar im Header und wähle ein Bild
-- **Zuschneiden**: Passe den Bildausschnitt im Editor an
-- **Entfernen**: Hover über den Avatar und klicke auf das X-Symbol
-- Avatare werden allen Spielern in Echtzeit angezeigt
+# OR generate and apply migrations
+npm run db:generate --workspace=server
+npm run db:migrate --workspace=server
+```
 
-### 7. Emoji werfen
-- **Öffnen**: Rechtsklick auf einen anderen Spieler am Pokertisch
-- **Auswählen**: Klicke auf "Emoji werfen" im Kontextmenü
-- **Werfen**: Wähle ein Emoji aus dem Picker (9 Kategorien verfügbar)
-- **Mehrfach werfen**: Der Picker bleibt offen für weitere Würfe
-- **Schließen**: Klicke außerhalb des Pickers oder drücke Escape
-- **Kategorien**: Lustig, Zahlen, Gesichter, Gesten, Herzen, Objekte, Essen, Tiere, Natur
-- **Zuletzt verwendet**: Die letzten 5 geworfenen Emojis erscheinen oben
+## Usage
+
+### 1. Create a room
+1. Open the app in your browser (`http://localhost:3000`)
+2. Click "Create New Room"
+3. Enter your name
+4. Optionally enter a custom room code (3-12 chars) or leave blank for auto-generated (6 chars)
+5. Share the code with your team
+
+### 2. Join a room
+1. Click "Join Room"
+2. Enter your name and the room code
+3. Click "Join"
+
+**Or with a direct link:**
+1. Open a shared link (e.g. `http://localhost:3000?room=ABC123`)
+2. Enter only your name (room code is pre-filled)
+3. Click "Join"
+
+### 3. Share the room
+- **Copy Link button**: Click "Copy Link" next to the room code inside the game room
+- The link is copied to your clipboard
+- Share the link with your team via email, chat, etc.
+
+### 4. Playing
+- **Select a card**: Click one of the cards in the deck
+- **Wait**: All players see who has already voted (face-down card indicator)
+- **Auto reveal**: Cards reveal automatically when all active players have voted
+- **Manual reveal**: The moderator can click "Reveal Cards" at any time
+- **Results**: After reveal, see all chosen cards and the average
+- **Consensus celebration**: Confetti appears when everyone picks the same card
+- **Apply story points**: Dialog suggests the consensus value or nearest Fibonacci to the average
+- **New round**: The moderator starts a new round
+
+### 5. Observer mode
+- **Enable**: Click "Observer Mode" in the header
+- **Disable**: Click "Participate" to rejoin voting
+- Observers cannot select cards and do not count toward auto-reveal
+
+### 6. Change avatar
+- **Upload**: Click your avatar in the header and select an image
+- **Crop**: Adjust the crop area in the editor
+- **Remove**: Hover over the avatar and click the X icon
+
+### 7. Throw emojis
+- **Open**: Right-click another player at the poker table
+- **Select**: Click "Throw Emoji" in the context menu
+- **Throw**: Choose an emoji from the picker (9 categories)
+- **Categories**: Funny, Numbers, Faces, Gestures, Hearts, Objects, Food, Animals, Nature
+- **Recently used**: Your last 5 thrown emojis appear at the top
 
 ### 8. Jira Integration (Moderator)
 
-#### Jira verbinden
-1. Klicke auf das Jira-Symbol in der Story-Liste (rechte Seitenleiste)
-2. Gib deine Jira-Instanz-URL ein (z.B. `https://dein-team.atlassian.net`)
-3. Gib deine E-Mail-Adresse ein
-4. Erstelle ein API-Token unter [Atlassian API-Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-5. Optional: Gib die Story Points Feld-ID ein (z.B. `customfield_10016`)
-6. Klicke auf "Verbinden"
+#### Connect Jira
+1. Click the Jira icon in the story list
+2. Enter your Jira instance URL (e.g. `https://your-team.atlassian.net`)
+3. Enter your email address
+4. Create an API token at [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+5. Optionally enter the Story Points field ID (e.g. `customfield_10016`)
+6. Click "Connect"
 
-#### Stories per Link importieren
-1. Kopiere die URL eines Jira-Issues (z.B. `https://team.atlassian.net/browse/PROJ-123`)
-2. Füge den Link in das Eingabefeld "Jira-Link einfügen..." ein
-3. Drücke Enter oder klicke auf das Plus-Symbol
-4. Die Story wird automatisch mit Titel importiert
+#### Import stories
+- **Via link**: Paste a Jira issue URL and press Enter
+- **Via JQL**: Advanced search with JQL queries (e.g. `sprint in openSprints()`)
+- **Manually**: Enter a description (URLs are rendered as clickable links)
 
-#### Stories per JQL importieren
-1. Stelle sicher, dass Jira verbunden ist
-2. Öffne "Erweitert: JQL-Import" unter der Story-Liste
-3. Gib eine JQL-Abfrage ein oder nutze die Schnellauswahl:
-   - `sprint in openSprints()` - Aktueller Sprint
-   - `assignee = currentUser() AND type = Story` - Meine Stories
-   - `"Story Points" is EMPTY AND type = Story` - Ohne Schätzung
-4. Klicke auf "Importieren"
+#### Apply story points
+1. A dialog appears after cards are revealed
+2. The consensus value is suggested automatically when all players agree
+3. Click "Apply" (saves locally and optionally syncs to Jira)
 
-#### Manuelle Stories hinzufügen
-1. Klicke auf "Story hinzufügen" unter der Story-Liste
-2. Gib eine Beschreibung ein
-3. Klicke auf "Hinzufügen"
-
-#### Story zur Abstimmung auswählen
-1. Klicke auf den Pfeil-Button neben einer Story
-2. Die Story erscheint als Banner über dem Pokertisch
-3. Alle Spieler sehen, welche Story gerade geschätzt wird
-
-#### Story Points vergeben
-1. Nach dem Aufdecken der Karten erscheint ein Dialog
-2. Bei Konsens wird der Wert automatisch vorgeschlagen
-3. Wähle den gewünschten Story Point-Wert
-4. Klicke auf "Anwenden" (speichert lokal und optional in Jira)
-5. Oder klicke "Überspringen" um ohne Punkte fortzufahren
-
-## Spielregeln
+## Game Rules
 
 ### Moderator
-- Der erste Spieler, der einen Raum erstellt, wird automatisch Moderator
-- Falls der Moderator den Raum verlässt, wird automatisch ein neuer Moderator ernannt
-- Nur der Moderator kann:
-  - Karten vorzeitig aufdecken
-  - Neue Runden starten
+- The first player to create a room becomes moderator automatically
+- If the moderator leaves, a new moderator is assigned automatically
+- Only the moderator can:
+  - Reveal cards early
+  - Start new rounds
+  - Manage stories
+  - Configure Jira
 
-### Kartenwerte
-Die Karten folgen einer Fibonacci-Sequenz:
-- **1, 2, 3, 5, 8, 13** - Story Points für agile Schätzungen
-- Kompaktes Set für schnelle Entscheidungen
+### Card values
+Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 
-### Abstimmung
-- Jeder Spieler wählt genau eine Karte
-- Andere Spieler sehen nur, dass du gewählt hast (nicht welche Karte)
-- Karten werden gleichzeitig aufgedeckt, wenn:
-  - ALLE Spieler gewählt haben (automatisch), ODER
-  - Der Moderator "Karten aufdecken" klickt (manuell)
+### Voting
+- Each player selects exactly one card
+- Other players only see that you have voted (not which card)
+- Cards are revealed simultaneously when:
+  - ALL active players have voted (automatic), OR
+  - The moderator clicks "Reveal Cards" (manual)
 
-## API Übersicht
+## API Reference
 
 ### Socket.io Events
 
-#### Client → Server
-- `createRoom(playerName, callback)` - Neuen Raum erstellen
-- `joinRoom({ roomCode, playerName }, callback)` - Raum beitreten
-- `selectCard(cardValue)` - Karte wählen (nicht als Beobachter möglich)
-- `revealCards()` - Karten aufdecken (nur Moderator)
-- `startNewRound()` - Neue Runde starten (nur Moderator)
-- `toggleObserver()` - Beobachter-Modus umschalten
-- `updateAvatar(avatarUrl)` - Avatar aktualisieren (Base64 oder null)
-- `throwEmoji({ toPlayerId, emoji })` - Emoji auf Spieler werfen
+#### Client -> Server
+- `createRoom(playerName, roomCode?, callback)` - Create a new room (optional custom code)
+- `joinRoom({ roomCode, playerName }, callback)` - Join a room
+- `selectCard(cardValue)` - Select a card
+- `revealCards()` - Reveal cards (moderator only)
+- `startNewRound()` - Start a new round (moderator only)
+- `toggleObserver()` - Toggle observer mode
+- `updateAvatar(avatarUrl)` - Update avatar (Base64 or null)
+- `throwEmoji({ toPlayerId, emoji })` - Throw an emoji at a player
 
-**Story Events (nur Moderator):**
-- `addManualStory(summary)` - Manuelle Story hinzufügen
-- `removeStory(storyId)` - Story entfernen
-- `selectStory(storyId)` - Story zur Abstimmung auswählen
-- `applyStoryPoints({ storyId, points })` - Story Points vergeben
-- `clearStories()` - Alle Stories löschen
+**Story events (moderator only):**
+- `addManualStory(summary)` - Add a manual story
+- `removeStory(storyId)` - Remove a story
+- `selectStory(storyId)` - Select a story for estimation
+- `applyStoryPoints({ storyId, points })` - Apply story points
+- `clearStories()` - Clear all stories
 
-**Jira Events (nur Moderator):**
-- `configureJira({ baseUrl, email, apiToken, storyPointsFieldId? })` - Jira verbinden
-- `disconnectJira()` - Jira-Verbindung trennen
-- `addStoryByLink(url)` - Story per Jira-Link importieren
-- `fetchJiraStories(jql)` - Stories per JQL importieren
-- `refreshJiraStories()` - Jira-Stories aktualisieren
+**Jira events (moderator only):**
+- `configureJira({ baseUrl, email, apiToken, storyPointsFieldId? })` - Connect Jira
+- `disconnectJira()` - Disconnect Jira
+- `addStoryByLink(url)` - Import a story via Jira link
+- `fetchJiraStories(jql)` - Import stories via JQL
+- `refreshJiraStories()` - Refresh Jira stories
 
-#### Server → Client
-- `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected })` - Erfolgreich beigetreten
-- `playerJoined(player)` - Neuer Spieler ist beigetreten
-- `playerLeft(playerId)` - Spieler hat den Raum verlassen
-- `cardSelected({ playerId, hasVoted })` - Spieler hat Karte gewählt
-- `cardsRevealed(players)` - Karten wurden aufgedeckt
-- `newRound()` - Neue Runde wurde gestartet
-- `observerToggled({ playerId, isObserver })` - Beobachter-Status geändert
-- `avatarUpdated({ playerId, avatarUrl })` - Avatar wurde aktualisiert
-- `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji wurde geworfen
-- `error(message)` - Fehler aufgetreten
+#### Server -> Client
+- `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected })` - Successfully joined
+- `playerJoined(player)` - A new player joined
+- `playerLeft({ playerId, newModeratorId? })` - A player left
+- `cardSelected({ playerId, hasVoted })` - A player selected a card
+- `cardsRevealed(players)` - Cards were revealed
+- `newRound()` - A new round started
+- `observerToggled({ playerId, isObserver })` - Observer status changed
+- `avatarUpdated({ playerId, avatarUrl })` - Avatar updated
+- `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji thrown
+- `error(message)` - An error occurred
 
-**Story Events:**
-- `storyAdded(story)` - Story wurde hinzugefügt
-- `storiesUpdated(stories)` - Story-Liste wurde aktualisiert
-- `storySelected({ storyId, story })` - Story wurde ausgewählt
-- `storyPointsApplied({ storyId, points })` - Story Points wurden vergeben
+**Story events:**
+- `storyAdded(story)` - A story was added
+- `storiesUpdated(stories)` - Story list updated
+- `storySelected({ storyId, story })` - A story was selected
+- `storyPointsApplied({ storyId, points })` - Story points applied
 
-**Jira Events:**
-- `jiraConfigured({ baseUrl })` - Jira wurde verbunden
-- `jiraDisconnected()` - Jira wurde getrennt
-- `jiraError({ code, message })` - Jira-Fehler aufgetreten
+**Jira events:**
+- `jiraConfigured({ baseUrl })` - Jira connected
+- `jiraDisconnected()` - Jira disconnected
+- `jiraError({ code, message })` - Jira error occurred
 
 ## Troubleshooting
 
-### Port bereits in Verwendung
-Wenn Port 3000 oder 3001 bereits verwendet wird:
-
-**Frontend** - Ändere in `client/vite.config.ts`:
+### Port already in use
+**Frontend** - Change in `client/vite.config.ts`:
 ```typescript
 server: {
-  port: 3002, // Neuer Port
+  port: 3002, // new port
 }
 ```
 
-**Backend** - Setze Umgebungsvariable:
+**Backend** - Set environment variable:
 ```bash
 PORT=3003 npm run dev:server
 ```
 
-### Verbindungsprobleme
-- Stelle sicher, dass beide Server laufen
-- Prüfe die Browser-Konsole auf Fehler
-- Stelle sicher, dass keine Firewall die Verbindung blockiert
+### Connection issues
+- Make sure both servers are running
+- Check the browser console for errors
+- Ensure no firewall is blocking the connection
 
-### Build-Fehler
+### Build errors
 ```bash
-# Dependencies neu installieren
-rm -rf node_modules client/node_modules server/node_modules
+# Reinstall dependencies
+rm -rf node_modules client/node_modules server/node_modules shared/node_modules
 npm install
 ```
 
-## Browser-Kompatibilität
+## Browser Compatibility
 
-- Chrome/Edge (empfohlen)
+- Chrome/Edge (recommended)
 - Firefox
 - Safari
-- Mobile Browser (iOS Safari, Chrome Mobile)
+- Mobile browsers (iOS Safari, Chrome Mobile)
 
-## Lizenz
+## License
 
-Dieses Projekt ist Open Source und für Bildungszwecke gedacht.
-
-## Entwickelt mit ❤️
-
-Erstellt als MVP für agile Teams, um Story Points effizient zu schätzen.
+This project is open source and intended for educational purposes.
