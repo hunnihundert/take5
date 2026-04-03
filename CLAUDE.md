@@ -48,13 +48,13 @@ npm run db:migrate --workspace=server   # Run migrations
 ### Real-time Communication
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`
+**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`
 
 **Client -> Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
 
 **Client -> Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
 
-**Server -> Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
+**Server -> Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `moderatorTransferred`, `error`
 
 **Server -> Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
 
@@ -110,7 +110,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 
 - **Card values:** Fibonacci sequence (1, 2, 3, 5, 8, 13)
 - **Room codes:** 6-character uppercase alphanumeric (auto-generated), or custom 3-12 character codes
-- **Moderator:** First player becomes moderator; auto-reassigns on disconnect
+- **Moderator:** First player becomes moderator; auto-reassigns on disconnect; can be manually transferred via right-click context menu (`transferModerator` event → `moderatorTransferred` broadcast)
 - **Auto-reveal:** Cards reveal automatically when all non-observer players vote
 - **Consensus:** Confetti animation triggers when all players select the same card
 - **Name uniqueness:** Duplicate player names are rejected per room

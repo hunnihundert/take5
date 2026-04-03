@@ -74,6 +74,26 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
 
 
 
+        socket.on('moderatorTransferred', ({ fromPlayerId, toPlayerId }: { fromPlayerId: string; toPlayerId: string }) => {
+            setRoomState((prev: RoomState) => {
+                const updatedPlayers = prev.players.map((p: Player) => ({
+                    ...p,
+                    isModerator: p.id === toPlayerId ? true : p.id === fromPlayerId ? false : p.isModerator,
+                }));
+
+                let updatedCurrentPlayer = prev.currentPlayer;
+                if (prev.currentPlayer) {
+                    if (prev.currentPlayer.id === toPlayerId) {
+                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: true };
+                    } else if (prev.currentPlayer.id === fromPlayerId) {
+                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: false };
+                    }
+                }
+
+                return { ...prev, players: updatedPlayers, currentPlayer: updatedCurrentPlayer };
+            });
+        });
+
         socket.on('avatarUpdated', ({ playerId, avatarUrl }: { playerId: string; avatarUrl: string }) => {
             setRoomState((prev: RoomState) => {
                 const updatedPlayers = prev.players.map((p: Player) =>
@@ -100,6 +120,7 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
             socket.off('roomJoined');
             socket.off('playerJoined');
             socket.off('playerLeft');
+            socket.off('moderatorTransferred');
             socket.off('avatarUpdated');
             socket.off('error');
         };
@@ -128,5 +149,10 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
         socket.emit('updateAvatar', avatarUrl);
     }, [socket]);
 
-    return { createRoom, joinRoom, updateAvatar };
+    const transferModerator = useCallback((toPlayerId: string) => {
+        if (!socket) return;
+        socket.emit('transferModerator', { toPlayerId });
+    }, [socket]);
+
+    return { createRoom, joinRoom, updateAvatar, transferModerator };
 };

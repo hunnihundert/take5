@@ -76,6 +76,65 @@ describe('Room Handler Integration', () => {
     expect(joinedPlayerData.isModerator).toBe(false);
   });
 
+  it('should transfer moderator when current moderator requests it', async () => {
+    // 1. Client 1 creates room
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', 'TROOM1', (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Client 2 joins
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode: 'TROOM1', playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 3. Client 1 (moderator) transfers to Client 2
+    const transferPromise1 = waitForEvent<any>(client1, 'moderatorTransferred');
+    const transferPromise2 = waitForEvent<any>(client2, 'moderatorTransferred');
+
+    client1.emit('transferModerator', { toPlayerId: client2.id });
+
+    const [data1, data2] = await Promise.all([transferPromise1, transferPromise2]);
+    expect(data1.fromPlayerId).toBe(client1.id);
+    expect(data1.toPlayerId).toBe(client2.id);
+    expect(data2.fromPlayerId).toBe(client1.id);
+    expect(data2.toPlayerId).toBe(client2.id);
+  });
+
+  it('should NOT transfer moderator when a non-moderator requests it', async () => {
+    // 1. Client 1 creates room
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', 'TROOM2', (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Client 2 joins (not a moderator)
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode: 'TROOM2', playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 3. Client 2 (non-moderator) tries to transfer to Client 1
+    let transferReceived = false;
+    client1.on('moderatorTransferred', () => { transferReceived = true; });
+    client2.on('moderatorTransferred', () => { transferReceived = true; });
+
+    client2.emit('transferModerator', { toPlayerId: client1.id });
+
+    // Wait briefly and confirm no event was received
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    expect(transferReceived).toBe(false);
+  });
+
   it('should promote a new moderator when the original leaves', async () => {
      // 1. Client 1 creates room
      await new Promise<void>((resolve) => {

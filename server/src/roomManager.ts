@@ -278,6 +278,20 @@ export class RoomManager {
     return player?.isModerator ?? false;
   }
 
+  transferModerator(roomCode: string, fromPlayerId: string, toPlayerId: string): boolean {
+    const room = this.getRoom(roomCode);
+    if (!room) return false;
+
+    const fromPlayer = room.players.get(fromPlayerId);
+    const toPlayer = room.players.get(toPlayerId);
+    if (!fromPlayer?.isModerator || !toPlayer) return false;
+
+    fromPlayer.isModerator = false;
+    toPlayer.isModerator = true;
+    logger.info(`Moderator transferred in room ${roomCode}: ${fromPlayer.name} -> ${toPlayer.name}`);
+    return true;
+  }
+
   async addManualStory(roomCode: string, summary: string): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
