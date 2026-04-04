@@ -30,6 +30,9 @@ export interface ServerToClientEvents {
   jiraConfigured: (data: { baseUrl: string }) => void;
   jiraDisconnected: () => void;
   jiraError: (data: { code: string; message: string }) => void;
+  sessionCreated: (data: { sessionId: string }) => void;
+  playerDisconnected: (data: { playerId: string }) => void;
+  playerReconnected: (data: { playerId: string }) => void;
   error: (message: string) => void;
 }
 

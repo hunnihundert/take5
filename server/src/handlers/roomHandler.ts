@@ -1,11 +1,19 @@
 import { SocketHandler } from './types';
 import { logger } from '../utils/logger';
 
-export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
+export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
+    const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('createRoom', async (playerName, roomCode, callback) => {
         try {
-            const result = await roomManager.createRoom(playerName, socket.id, roomCode);
+            // Check if session is already in a room
+            const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
+            if (existingRoom) {
+                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                return;
+            }
+
+            const result = await roomManager.createRoom(playerName, sessionId, roomCode);
 
             if (!result.success) {
                 callback({ success: false, error: result.error });
@@ -13,7 +21,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             }
 
             const { room, player } = result.data;
-            socketToRoom.set(socket.id, room.code);
+
+            sessionManager.setSessionRoom(sessionId, room.code, {
+                playerName,
+                isModerator: true,
+            });
 
             socket.join(room.code);
 
@@ -34,7 +46,14 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
 
     socket.on('joinRoom', async ({ roomCode, playerName }, callback) => {
         try {
-            const result = await roomManager.joinRoom(roomCode, playerName, socket.id);
+            // Check if session is already in a different room
+            const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
+            if (existingRoom && existingRoom.toUpperCase() !== roomCode.toUpperCase()) {
+                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                return;
+            }
+
+            const result = await roomManager.joinRoom(roomCode, playerName, sessionId);
 
             if (!result.success) {
                 callback({ success: false, error: result.error });
@@ -42,7 +61,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             }
 
             const { room, player } = result.data;
-            socketToRoom.set(socket.id, room.code);
+
+            sessionManager.setSessionRoom(sessionId, room.code, {
+                playerName,
+                isModerator: player.isModerator,
+            });
 
             socket.join(room.code);
 
@@ -67,34 +90,54 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('updateAvatar', (avatarUrl: string | null) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        const player = roomManager.updateAvatar(roomCode, socket.id, avatarUrl);
+        const player = roomManager.updateAvatar(roomCode, sessionId, avatarUrl);
         if (!player) return;
 
         // Notify all players about avatar change
         io.to(roomCode).emit('avatarUpdated', {
-            playerId: socket.id,
+            playerId: sessionId,
             avatarUrl: player.avatarUrl
         });
     });
 
     socket.on('disconnect', () => {
-        const roomCode = socketToRoom.get(socket.id);
-        if (roomCode) {
-            const result = roomManager.removePlayer(roomCode, socket.id);
+        const { sessionId: sid, isLastSocket } = sessionManager.unregisterSocket(socket.id);
+        if (!sid) return;
+
+        // If other tabs are still connected, do nothing
+        if (!isLastSocket) {
+            logger.info(`Socket ${socket.id} disconnected, but session ${sid} still has other sockets`);
+            return;
+        }
+
+        const sessionInfo = sessionManager.getSessionInfo(sid);
+        if (!sessionInfo?.roomCode) {
+            logger.info(`Session ${sid} disconnected with no room`);
+            return;
+        }
+
+        const roomCode = sessionInfo.roomCode;
+
+        // Notify others the player is temporarily disconnected
+        io.to(roomCode).emit('playerDisconnected', { playerId: sid });
+
+        // Start grace period
+        sessionManager.startDisconnectTimer(sid, () => {
+            // Timer expired — remove the player for real
+            const result = roomManager.removePlayer(roomCode, sid);
             if (result.removed) {
-                // Use io.to() instead of socket.to() for disconnect events
-                // to ensure reliable delivery to all remaining players
                 io.to(roomCode).emit('playerLeft', {
-                    playerId: socket.id,
+                    playerId: sid,
                     newModeratorId: result.newModerator?.id
                 });
             }
-            socketToRoom.delete(socket.id);
-            console.log(`Player ${socket.id} left room ${roomCode}`);
-        }
-        console.log('Client disconnected:', socket.id);
+            sessionManager.destroySession(sid);
+            logger.info(`Session ${sid} removed from room ${roomCode} after grace period`);
+        }, sessionManager.disconnectGraceMs);
+
+        logger.info(`Grace period started for session ${sid} in room ${roomCode}`);
     });
 };

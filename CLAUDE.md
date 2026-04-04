@@ -54,22 +54,23 @@ Socket.io handles all game state synchronization. Key event patterns:
 
 **Client -> Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
 
-**Server -> Client:** `roomJoined`, `playerJoined`, `playerLeft`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
+**Server -> Client:** `sessionCreated`, `roomJoined`, `playerJoined`, `playerLeft`, `playerDisconnected`, `playerReconnected`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
 
 **Server -> Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
 
 **Server -> Client (Jira):** `jiraConfigured`, `jiraDisconnected`, `jiraError`
 
 ### State Management
-- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set).
-- **Frontend:** React Context (`GameContext`) dispatching to specialized socket hooks (`useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). Includes 10-minute heartbeat for Render.com keep-alive.
+- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set). `SessionManager` tracks session↔socket mappings and 60-second disconnect grace period timers.
+- **Frontend:** React Context (`GameContext`) dispatching to specialized socket hooks (`useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). Includes 10-minute heartbeat for Render.com keep-alive. Player name and avatar persisted in `localStorage`.
 
 ### Key Files
 
 **Server:**
-- `server/src/index.ts` - Express server, Socket.io setup, CORS, static file serving, health endpoint
+- `server/src/index.ts` - Express server, Socket.io setup, session middleware, reconnection logic, health endpoint
+- `server/src/sessionManager.ts` - Session tracking: session↔socket mapping, disconnect grace period timers
 - `server/src/roomManager.ts` - Core game logic (room creation, player management, voting, DB hydration)
-- `server/src/handlers/roomHandler.ts` - Room socket events (create, join, avatar, disconnect)
+- `server/src/handlers/roomHandler.ts` - Room socket events (create, join, avatar, disconnect with grace period)
 - `server/src/handlers/gameHandler.ts` - Game socket events (card select, reveal, new round, observer, emoji)
 - `server/src/handlers/storyHandler.ts` - Story socket events (add, remove, select, apply points, clear)
 - `server/src/handlers/jiraHandler.ts` - Jira socket events (configure, disconnect, import, fetch, refresh)
@@ -110,10 +111,14 @@ Socket.io handles all game state synchronization. Key event patterns:
 
 - **Card values:** Fibonacci sequence (1, 2, 3, 5, 8, 13)
 - **Room codes:** 6-character uppercase alphanumeric (auto-generated), or custom 3-12 character codes
-- **Moderator:** First player becomes moderator; auto-reassigns on disconnect
+- **Moderator:** First player becomes moderator; auto-reassigns on disconnect (after grace period)
 - **Auto-reveal:** Cards reveal automatically when all non-observer players vote
 - **Consensus:** Confetti animation triggers when all players select the same card
 - **Name uniqueness:** Duplicate player names are rejected per room
+- **Session identity:** `Player.id` is a server-generated UUID session ID (not socket.id); stored in client `localStorage` as `take5_sessionId`
+- **Grace period:** On disconnect, player removal is delayed 60 seconds; reconnecting within that window restores full state seamlessly
+- **Multi-tab:** Multiple tabs with the same session ID are treated as one player; each receives full state via `roomJoined`
+- **Avatar/name persistence:** Stored in `localStorage` (`take5_avatarUrl`, `take5_playerName`); avatar auto-sent after joining, name pre-fills Home form
 - **Jira Integration:** Stories can be imported via URL or JQL; story points sync back to Jira
 - **Clickable links:** URLs in manual story summaries render as clickable links
 - **Database persistence:** When DATABASE_URL is set, rooms and stories survive player disconnects and can be rehydrated

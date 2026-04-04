@@ -32,6 +32,18 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
             });
             setInRoom(true);
 
+            // Persist room code and player name to localStorage
+            localStorage.setItem('take5_roomCode', roomCode);
+            localStorage.setItem('take5_playerName', player.name);
+
+            // Auto-restore avatar from localStorage if player doesn't have one
+            if (!player.avatarUrl) {
+                const storedAvatar = localStorage.getItem('take5_avatarUrl');
+                if (storedAvatar) {
+                    socket.emit('updateAvatar', storedAvatar);
+                }
+            }
+
             // Update URL with room code
             const newUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
             window.history.pushState({ room: roomCode }, '', newUrl);
@@ -72,7 +84,23 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
             });
         });
 
+        socket.on('playerDisconnected', ({ playerId }: { playerId: string }) => {
+            setRoomState((prev: RoomState) => ({
+                ...prev,
+                players: prev.players.map((p: Player) =>
+                    p.id === playerId ? { ...p, disconnected: true } : p
+                )
+            }));
+        });
 
+        socket.on('playerReconnected', ({ playerId }: { playerId: string }) => {
+            setRoomState((prev: RoomState) => ({
+                ...prev,
+                players: prev.players.map((p: Player) =>
+                    p.id === playerId ? { ...p, disconnected: false } : p
+                )
+            }));
+        });
 
         socket.on('avatarUpdated', ({ playerId, avatarUrl }: { playerId: string; avatarUrl: string }) => {
             setRoomState((prev: RoomState) => {
@@ -83,6 +111,15 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
                 const updatedCurrentPlayer = prev.currentPlayer?.id === playerId && prev.currentPlayer
                     ? { ...prev.currentPlayer, avatarUrl }
                     : prev.currentPlayer;
+
+                // Persist own avatar to localStorage
+                if (prev.currentPlayer?.id === playerId) {
+                    if (avatarUrl) {
+                        localStorage.setItem('take5_avatarUrl', avatarUrl);
+                    } else {
+                        localStorage.removeItem('take5_avatarUrl');
+                    }
+                }
 
                 return {
                     ...prev,
@@ -100,6 +137,8 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
             socket.off('roomJoined');
             socket.off('playerJoined');
             socket.off('playerLeft');
+            socket.off('playerDisconnected');
+            socket.off('playerReconnected');
             socket.off('avatarUpdated');
             socket.off('error');
         };
@@ -109,7 +148,7 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
         if (!socket) return;
         socket.emit('createRoom', playerName, roomCode, (response: { success: boolean; roomCode?: string; error?: string }) => {
             if (!response.success) {
-                alert(response.error || 'Fehler beim Erstellen des Raums');
+                alert(response.error || 'Failed to create room');
             }
         });
     }, [socket]);
@@ -118,7 +157,7 @@ export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocket
         if (!socket) return;
         socket.emit('joinRoom', { roomCode, playerName }, (response: { success: boolean; error?: string }) => {
             if (!response.success) {
-                alert(response.error || 'Fehler beim Beitreten');
+                alert(response.error || 'Failed to join room');
             }
         });
     }, [socket]);

@@ -7,6 +7,7 @@ import { useJiraSocket } from '../hooks/useJiraSocket';
 import { RoomState, CardValue } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const RECONNECT_TIMEOUT_MS = 3_000; // 3 seconds to wait for auto-rejoin
 
 interface IncomingEmoji {
     toPlayerId: string;
@@ -16,6 +17,7 @@ interface IncomingEmoji {
 
 interface GameContextType {
     connected: boolean;
+    reconnecting: boolean;
     roomState: RoomState;
     inRoom: boolean;
     incomingEmojis: IncomingEmoji[];
@@ -47,7 +49,7 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const { socket, connected } = useSocket();
+    const { socket, connected, sessionId } = useSocket();
     const [roomState, setRoomState] = useState<RoomState>({
         roomCode: '',
         currentPlayer: null,
@@ -58,16 +60,35 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         jiraConnected: false
     });
     const [inRoom, setInRoom] = useState(false);
+    const [reconnecting, setReconnecting] = useState(false);
     const [incomingEmojis, setIncomingEmojis] = useState<IncomingEmoji[]>([]);
 
-    // Read room code from URL on mount
+    // Detect if we might be reconnecting (have a stored session + room in URL)
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const roomParam = params.get('room');
-        if (roomParam) {
-            // Logic to handle auto-join flow could be added here or handled by the component
+        if (connected && !inRoom) {
+            const hasStoredSession = !!localStorage.getItem('take5_sessionId');
+            const params = new URLSearchParams(window.location.search);
+            const hasRoomParam = !!params.get('room');
+
+            if (hasStoredSession && hasRoomParam) {
+                setReconnecting(true);
+
+                // Give the server time to auto-rejoin via roomJoined event
+                const timeout = setTimeout(() => {
+                    setReconnecting(false);
+                }, RECONNECT_TIMEOUT_MS);
+
+                return () => clearTimeout(timeout);
+            }
         }
-    }, []);
+    }, [connected, inRoom]);
+
+    // Clear reconnecting state when we successfully join a room
+    useEffect(() => {
+        if (inRoom) {
+            setReconnecting(false);
+        }
+    }, [inRoom]);
 
     // Heartbeat to keep Render instance alive when in a room
     useEffect(() => {
@@ -97,6 +118,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { createRoom, joinRoom, updateAvatar } = useRoomSocket({ socket, setRoomState, setInRoom });
     const { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji } = useGameSocket({
         socket,
+        sessionId,
         roomState,
         setRoomState,
         setIncomingEmojis
@@ -110,6 +132,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const value = {
         connected,
+        reconnecting,
         roomState,
         inRoom,
         incomingEmojis,

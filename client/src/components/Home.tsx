@@ -8,7 +8,7 @@ interface HomeProps {
 
 const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
   const [mode, setMode] = useState<'select' | 'create' | 'join'>('select');
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('take5_playerName') || '');
   const [roomCode, setRoomCode] = useState('');
 
   // If initialRoomCode is provided, pre-fill and switch to join mode
@@ -23,7 +23,7 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
     e.preventDefault();
 
     if (!playerName.trim()) {
-      alert('Bitte gib deinen Namen ein');
+      alert('Please enter your name');
       return;
     }
 
@@ -31,7 +31,7 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
       onCreateRoom(playerName.trim(), roomCode.trim() || undefined);
     } else if (mode === 'join') {
       if (!roomCode.trim()) {
-        alert('Bitte gib einen Raum-Code ein');
+        alert('Please enter a room code');
         return;
       }
       onJoinRoom(roomCode.trim().toUpperCase(), playerName.trim());
@@ -45,7 +45,7 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
           Planning Poker
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Agile Schätzung im Team
+          Agile estimation for teams
         </p>
 
         {mode === 'select' ? (
@@ -54,27 +54,27 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
               onClick={() => setMode('create')}
               className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105"
             >
-              Neuen Raum erstellen
+              Create new room
             </button>
             <button
               onClick={() => setMode('join')}
               className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105"
             >
-              Raum beitreten
+              Join room
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dein Name
+                Your name
               </label>
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                placeholder="Dein Name"
+                placeholder="Your name"
                 autoFocus
               />
             </div>
@@ -82,18 +82,18 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
             {mode === 'create' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Raum-Code (optional)
+                  Room code (optional)
                 </label>
                 <input
                   type="text"
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none uppercase"
-                  placeholder="Z.B. MEINRAUM"
+                  placeholder="E.g. MYROOM"
                   maxLength={12}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Leer lassen für zufälligen Code. 3-12 Zeichen.
+                  Leave empty for a random code. 3-12 characters.
                 </p>
               </div>
             )}
@@ -101,14 +101,14 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
             {mode === 'join' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Raum-Code
+                  Room code
                 </label>
                 <input
                   type="text"
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none uppercase"
-                  placeholder="Z.B. MEINRAUM"
+                  placeholder="E.g. MYROOM"
                   maxLength={12}
                 />
               </div>
@@ -124,13 +124,13 @@ const Home = ({ onCreateRoom, onJoinRoom, initialRoomCode }: HomeProps) => {
                 }}
                 className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition duration-200"
               >
-                Zurück
+                Back
               </button>
               <button
                 type="submit"
                 className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
               >
-                {mode === 'create' ? 'Erstellen' : 'Beitreten'}
+                {mode === 'create' ? 'Create' : 'Join'}
               </button>
             </div>
           </form>
