@@ -6,9 +6,11 @@ interface PlayerContextMenuProps {
   playerName: string;
   onThrowEmoji: () => void;
   onClose: () => void;
+  showMakeModerator?: boolean;
+  onMakeModerator?: () => void;
 }
 
-const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose }: PlayerContextMenuProps) => {
+const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeModerator, onMakeModerator }: PlayerContextMenuProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,9 +36,10 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose }: PlayerCo
   }, [onClose]);
 
   // Adjust position to keep menu in viewport
+  const menuHeight = showMakeModerator && onMakeModerator ? 140 : 100;
   const adjustedStyle = {
     left: Math.min(x, window.innerWidth - 200),
-    top: Math.min(y, window.innerHeight - 100),
+    top: Math.min(y, window.innerHeight - menuHeight),
   };
 
   return (
@@ -58,6 +61,17 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose }: PlayerCo
         <span className="text-lg">🎯</span>
         <span>Emoji werfen</span>
       </button>
+      {showMakeModerator && onMakeModerator && (
+        <button
+          onClick={() => {
+            onMakeModerator?.();
+          }}
+          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-2 transition-colors"
+        >
+          <span className="text-lg">👑</span>
+          <span>Zum Moderator machen</span>
+        </button>
+      )}
     </div>
   );
 };

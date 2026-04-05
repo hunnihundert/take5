@@ -404,4 +404,53 @@ describe('RoomManager', () => {
             expect(roomManager.getActiveStory(roomCode)).toBeNull();
         });
     });
+
+    describe('transferModerator', () => {
+        let roomCode: string;
+        const p2Id = 'player-456';
+
+        beforeEach(async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            roomCode = result.data.room.code;
+            await roomManager.joinRoom(roomCode, 'Player 2', p2Id);
+        });
+
+        it('should transfer moderator role from current moderator to another player', () => {
+            const success = roomManager.transferModerator(roomCode, playerId, p2Id);
+
+            expect(success).toBe(true);
+            expect(roomManager.isModerator(roomCode, playerId)).toBe(false);
+            expect(roomManager.isModerator(roomCode, p2Id)).toBe(true);
+        });
+
+        it('should return false when called by a non-moderator', () => {
+            const success = roomManager.transferModerator(roomCode, p2Id, playerId);
+
+            expect(success).toBe(false);
+            // Moderator status unchanged
+            expect(roomManager.isModerator(roomCode, playerId)).toBe(true);
+            expect(roomManager.isModerator(roomCode, p2Id)).toBe(false);
+        });
+
+        it('should return false when target player does not exist', () => {
+            const success = roomManager.transferModerator(roomCode, playerId, 'nonexistent-id');
+
+            expect(success).toBe(false);
+            expect(roomManager.isModerator(roomCode, playerId)).toBe(true);
+        });
+
+        it('should return false when room does not exist', () => {
+            const success = roomManager.transferModerator('INVALID', playerId, p2Id);
+
+            expect(success).toBe(false);
+        });
+
+        it('should return false when transferring to the same player', () => {
+            const success = roomManager.transferModerator(roomCode, playerId, playerId);
+
+            expect(success).toBe(false);
+            expect(roomManager.isModerator(roomCode, playerId)).toBe(true);
+        });
+    });
 });

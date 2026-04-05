@@ -17,6 +17,7 @@ export interface ServerToClientEvents {
   roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId: string | null; jiraConnected: boolean }) => void;
   playerJoined: (player: Player) => void;
   playerLeft: (data: { playerId: string; newModeratorId?: string }) => void;
+  moderatorTransferred: (data: { fromPlayerId: string; toPlayerId: string }) => void;
   cardSelected: (data: { playerId: string; hasVoted: boolean }) => void;
   cardsRevealed: (players: Player[]) => void;
   newRound: () => void;
@@ -46,6 +47,7 @@ export interface ClientToServerEvents {
   toggleObserver: () => void;
   updateAvatar: (avatarUrl: string | null) => void;
   throwEmoji: (data: { toPlayerId: string; emoji: string }) => void;
+  transferModerator: (data: { toPlayerId: string }) => void;
 
   // Story events
   addManualStory: (summary: string) => void;
