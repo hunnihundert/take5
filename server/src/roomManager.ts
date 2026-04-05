@@ -282,6 +282,8 @@ export class RoomManager {
     const room = this.getRoom(roomCode);
     if (!room) return false;
 
+    if (fromPlayerId === toPlayerId) return false;
+
     const fromPlayer = room.players.get(fromPlayerId);
     const toPlayer = room.players.get(toPlayerId);
     if (!fromPlayer?.isModerator || !toPlayer) return false;

@@ -445,5 +445,12 @@ describe('RoomManager', () => {
 
             expect(success).toBe(false);
         });
+
+        it('should return false when transferring to the same player', () => {
+            const success = roomManager.transferModerator(roomCode, playerId, playerId);
+
+            expect(success).toBe(false);
+            expect(roomManager.isModerator(roomCode, playerId)).toBe(true);
+        });
     });
 });

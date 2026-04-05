@@ -13,7 +13,7 @@ const baseProps = {
 describe('PlayerContextMenu', () => {
     it('always shows the Emoji werfen option', () => {
         render(<PlayerContextMenu {...baseProps} />);
-        expect(screen.getByText('Emoji werfen')).toBeDefined();
+        expect(screen.getByText('Emoji werfen')).toBeInTheDocument();
     });
 
     it('does NOT show "Zum Moderator machen" when showMakeModerator is false', () => {
@@ -28,7 +28,7 @@ describe('PlayerContextMenu', () => {
 
     it('shows "Zum Moderator machen" when showMakeModerator is true (current player is moderator)', () => {
         render(<PlayerContextMenu {...baseProps} showMakeModerator={true} onMakeModerator={vi.fn()} />);
-        expect(screen.getByText('Zum Moderator machen')).toBeDefined();
+        expect(screen.getByText('Zum Moderator machen')).toBeInTheDocument();
     });
 
     it('calls onMakeModerator when "Zum Moderator machen" is clicked', () => {

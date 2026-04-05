@@ -124,15 +124,18 @@ describe('Room Handler Integration', () => {
     });
 
     // 3. Client 2 (non-moderator) tries to transfer to Client 1
-    let transferReceived = false;
-    client1.on('moderatorTransferred', () => { transferReceived = true; });
-    client2.on('moderatorTransferred', () => { transferReceived = true; });
+    const expectNoEvent = (timeoutMs: number) =>
+      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), timeoutMs));
+
+    const transferReceived = new Promise<'event'>((resolve) => {
+      client1.on('moderatorTransferred', () => resolve('event'));
+      client2.on('moderatorTransferred', () => resolve('event'));
+    });
 
     client2.emit('transferModerator', { toPlayerId: client1.id });
 
-    // Wait briefly and confirm no event was received
-    await new Promise<void>((resolve) => setTimeout(resolve, 100));
-    expect(transferReceived).toBe(false);
+    const result = await Promise.race([transferReceived, expectNoEvent(100)]);
+    expect(result).toBe('timeout');
   });
 
   it('should promote a new moderator when the original leaves', async () => {

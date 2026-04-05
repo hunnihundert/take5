@@ -36,7 +36,7 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeMo
   }, [onClose]);
 
   // Adjust position to keep menu in viewport
-  const menuHeight = showMakeModerator ? 140 : 100;
+  const menuHeight = showMakeModerator && onMakeModerator ? 140 : 100;
   const adjustedStyle = {
     left: Math.min(x, window.innerWidth - 200),
     top: Math.min(y, window.innerHeight - menuHeight),
@@ -61,7 +61,7 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeMo
         <span className="text-lg">🎯</span>
         <span>Emoji werfen</span>
       </button>
-      {showMakeModerator && (
+      {showMakeModerator && onMakeModerator && (
         <button
           onClick={() => {
             onMakeModerator?.();
