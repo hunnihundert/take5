@@ -33,6 +33,7 @@ export const useSocket = () => {
 
     socketInstance.on('sessionCreated', ({ sessionId: newId }: { sessionId: string }) => {
       localStorage.setItem('take5_sessionId', newId);
+      socketInstance.auth = { sessionId: newId };
       setSessionId(newId);
       console.log('Session created:', newId);
     });
