@@ -104,14 +104,14 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('transferModerator', ({ toPlayerId }: { toPlayerId: string }) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        const success = roomManager.transferModerator(roomCode, socket.id, toPlayerId);
+        const success = roomManager.transferModerator(roomCode, sessionId, toPlayerId);
         if (!success) return;
 
         io.to(roomCode).emit('moderatorTransferred', {
-            fromPlayerId: socket.id,
+            fromPlayerId: sessionId,
             toPlayerId,
         });
     });

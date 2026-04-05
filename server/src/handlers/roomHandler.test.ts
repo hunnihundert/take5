@@ -73,9 +73,11 @@ describe('Room Handler Integration', () => {
   });
 
   it('should transfer moderator when current moderator requests it', async () => {
+    const roomCode = `TROOM${testIndex}`;
+
     // 1. Client 1 creates room
     await new Promise<void>((resolve) => {
-      client1.emit('createRoom', 'Player 1', 'TROOM1', (res: any) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
         expect(res.success).toBe(true);
         resolve();
       });
@@ -83,29 +85,31 @@ describe('Room Handler Integration', () => {
 
     // 2. Client 2 joins
     await new Promise<void>((resolve) => {
-      client2.emit('joinRoom', { roomCode: 'TROOM1', playerName: 'Player 2' }, (res: any) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
         expect(res.success).toBe(true);
         resolve();
       });
     });
 
-    // 3. Client 1 (moderator) transfers to Client 2
+    // 3. Client 1 (moderator) transfers to Client 2 — use session IDs, not socket IDs
     const transferPromise1 = waitForEvent<any>(client1, 'moderatorTransferred');
     const transferPromise2 = waitForEvent<any>(client2, 'moderatorTransferred');
 
-    client1.emit('transferModerator', { toPlayerId: client2.id });
+    client1.emit('transferModerator', { toPlayerId: client2.sessionId });
 
     const [data1, data2] = await Promise.all([transferPromise1, transferPromise2]);
-    expect(data1.fromPlayerId).toBe(client1.id);
-    expect(data1.toPlayerId).toBe(client2.id);
-    expect(data2.fromPlayerId).toBe(client1.id);
-    expect(data2.toPlayerId).toBe(client2.id);
+    expect(data1.fromPlayerId).toBe(client1.sessionId);
+    expect(data1.toPlayerId).toBe(client2.sessionId);
+    expect(data2.fromPlayerId).toBe(client1.sessionId);
+    expect(data2.toPlayerId).toBe(client2.sessionId);
   });
 
   it('should NOT transfer moderator when a non-moderator requests it', async () => {
+    const roomCode = `TROOM${testIndex}`;
+
     // 1. Client 1 creates room
     await new Promise<void>((resolve) => {
-      client1.emit('createRoom', 'Player 1', 'TROOM2', (res: any) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
         expect(res.success).toBe(true);
         resolve();
       });
@@ -113,7 +117,7 @@ describe('Room Handler Integration', () => {
 
     // 2. Client 2 joins (not a moderator)
     await new Promise<void>((resolve) => {
-      client2.emit('joinRoom', { roomCode: 'TROOM2', playerName: 'Player 2' }, (res: any) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
         expect(res.success).toBe(true);
         resolve();
       });
@@ -128,7 +132,7 @@ describe('Room Handler Integration', () => {
       client2.on('moderatorTransferred', () => resolve('event'));
     });
 
-    client2.emit('transferModerator', { toPlayerId: client1.id });
+    client2.emit('transferModerator', { toPlayerId: client1.sessionId });
 
     const result = await Promise.race([transferReceived, expectNoEvent(100)]);
     expect(result).toBe('timeout');
