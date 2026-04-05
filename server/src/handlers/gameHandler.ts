@@ -1,24 +1,25 @@
 import { SocketHandler } from './types';
 import { CardValue } from '../types';
 
-export const gameHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
+export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
+    const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('selectCard', (cardValue: CardValue) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
         const room = roomManager.getRoom(roomCode);
         if (!room) return;
 
-        const player = room.players.get(socket.id);
+        const player = room.players.get(sessionId);
         if (!player || player.isObserver) return; // Observers cannot select cards
 
-        const success = roomManager.selectCard(roomCode, socket.id, cardValue);
+        const success = roomManager.selectCard(roomCode, sessionId, cardValue);
         if (!success) return;
 
         // Notify all players that someone voted
         io.to(roomCode).emit('cardSelected', {
-            playerId: socket.id,
+            playerId: sessionId,
             hasVoted: player.hasVoted
         });
 
@@ -32,21 +33,21 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('toggleObserver', () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        const player = roomManager.toggleObserver(roomCode, socket.id);
+        const player = roomManager.toggleObserver(roomCode, sessionId);
         if (!player) return;
 
         // Notify all players about observer status change
         io.to(roomCode).emit('observerToggled', {
-            playerId: socket.id,
+            playerId: sessionId,
             isObserver: player.isObserver
         });
     });
 
     socket.on('throwEmoji', ({ toPlayerId, emoji }) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
         const room = roomManager.getRoom(roomCode);
@@ -57,20 +58,20 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, socketToRoom
 
         // Broadcast emoji throw to all players in the room
         io.to(roomCode).emit('emojiThrown', {
-            fromPlayerId: socket.id,
+            fromPlayerId: sessionId,
             toPlayerId,
             emoji
         });
     });
 
     socket.on('revealCards', () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
         const room = roomManager.getRoom(roomCode);
         if (!room) return;
 
-        const player = room.players.get(socket.id);
+        const player = room.players.get(sessionId);
         if (!player || !player.isModerator) return;
 
         const revealedRoom = roomManager.revealCards(roomCode);
@@ -80,13 +81,13 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('startNewRound', () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
         const room = roomManager.getRoom(roomCode);
         if (!room) return;
 
-        const player = room.players.get(socket.id);
+        const player = room.players.get(sessionId);
         if (!player || !player.isModerator) return;
 
         const resetRoom = roomManager.startNewRound(roomCode);

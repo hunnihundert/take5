@@ -4,12 +4,20 @@ import Home from './components/Home';
 import GameRoom from './components/GameRoom';
 
 const GameContent = () => {
-  const { connected, inRoom, createRoom, joinRoom } = useGameContext();
+  const { connected, reconnecting, inRoom, createRoom, joinRoom } = useGameContext();
 
   if (!connected) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-2xl">Verbinde mit Server...</div>
+        <div className="text-white text-2xl">Connecting to server...</div>
+      </div>
+    );
+  }
+
+  if (reconnecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-white text-2xl">Reconnecting...</div>
       </div>
     );
   }

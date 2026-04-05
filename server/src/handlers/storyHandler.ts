@@ -1,14 +1,15 @@
 import { SocketHandler } from './types';
 
-export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
+export const storyHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
+    const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('addManualStory', async (summary: string) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
         // Verify moderator
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories hinzufügen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can add stories');
             return;
         }
 
@@ -24,11 +25,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
     });
 
     socket.on('removeStory', async (storyId: string) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories entfernen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can remove stories');
             return;
         }
 
@@ -44,11 +45,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
     });
 
     socket.on('selectStory', async (storyId: string | null) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories auswählen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can select stories');
             return;
         }
 
@@ -62,11 +63,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
     });
 
     socket.on('applyStoryPoints', async ({ storyId, points }: { storyId: string; points: number }) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Story Points vergeben');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can assign story points');
             return;
         }
 
@@ -82,11 +83,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, socketToRoo
     });
 
     socket.on('clearStories', async () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories löschen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can clear stories');
             return;
         }
 

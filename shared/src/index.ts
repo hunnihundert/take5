@@ -18,6 +18,7 @@ export interface Player {
     isModerator: boolean;
     isObserver: boolean;
     avatarUrl: string | null;
+    disconnected?: boolean;
 }
 
 export interface RoomState {

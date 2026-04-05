@@ -8,9 +8,18 @@ export const BACKEND_URL = import.meta.env.VITE_SOCKET_URL ||
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(
+    () => localStorage.getItem('take5_sessionId')
+  );
 
   useEffect(() => {
-    const socketInstance = io(BACKEND_URL);
+    const storedSessionId = localStorage.getItem('take5_sessionId');
+
+    const socketInstance = io(BACKEND_URL, {
+      auth: {
+        sessionId: storedSessionId || undefined,
+      },
+    });
 
     socketInstance.on('connect', () => {
       console.log('Connected to server');
@@ -22,6 +31,13 @@ export const useSocket = () => {
       setConnected(false);
     });
 
+    socketInstance.on('sessionCreated', ({ sessionId: newId }: { sessionId: string }) => {
+      localStorage.setItem('take5_sessionId', newId);
+      socketInstance.auth = { sessionId: newId };
+      setSessionId(newId);
+      console.log('Session created:', newId);
+    });
+
     setSocket(socketInstance);
 
     return () => {
@@ -29,5 +45,5 @@ export const useSocket = () => {
     };
   }, []);
 
-  return { socket, connected };
+  return { socket, connected, sessionId };
 };

@@ -1,21 +1,22 @@
 import { SocketHandler } from './types';
 import { JiraService } from '../services/jiraService';
 
-export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom) => {
+export const jiraHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
+    const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('configureJira', async (config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Jira konfigurieren');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can configure Jira');
             return;
         }
 
         // Test the connection first
         const testResult = await JiraService.testConnection(config);
         if (!testResult.success) {
-            socket.emit('jiraError', { code: 'CONNECTION_FAILED', message: testResult.error || 'Verbindung fehlgeschlagen' });
+            socket.emit('jiraError', { code: 'CONNECTION_FAILED', message: testResult.error || 'Connection failed' });
             return;
         }
 
@@ -31,11 +32,11 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('disconnectJira', async () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Jira trennen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can disconnect Jira');
             return;
         }
 
@@ -50,18 +51,18 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('addStoryByLink', async (url: string) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories hinzufügen');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can add stories');
             return;
         }
 
         // Parse the URL
         const parsed = JiraService.parseJiraUrl(url);
         if (!parsed) {
-            socket.emit('jiraError', { code: 'INVALID_URL', message: 'Ungültige Jira-URL' });
+            socket.emit('jiraError', { code: 'INVALID_URL', message: 'Invalid Jira URL' });
             return;
         }
 
@@ -69,20 +70,20 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
         const jiraConfig = roomManager.getJiraConfig(roomCode);
         if (!jiraConfig) {
             // Return info to configure Jira with detected base URL
-            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: `Jira nicht konfiguriert. Erkannte URL: ${parsed.baseUrl}` });
+            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: `Jira not configured. Detected URL: ${parsed.baseUrl}` });
             return;
         }
 
         // Validate same Jira instance
         if (jiraConfig.baseUrl !== parsed.baseUrl) {
-            socket.emit('jiraError', { code: 'INSTANCE_MISMATCH', message: `Falsche Jira-Instanz. Erwartet: ${jiraConfig.baseUrl}` });
+            socket.emit('jiraError', { code: 'INSTANCE_MISMATCH', message: `Wrong Jira instance. Expected: ${jiraConfig.baseUrl}` });
             return;
         }
 
         // Fetch the issue
         const result = await JiraService.fetchIssue(jiraConfig, parsed.issueKey);
         if (!result.story) {
-            socket.emit('jiraError', { code: 'FETCH_FAILED', message: result.error || 'Issue konnte nicht abgerufen werden' });
+            socket.emit('jiraError', { code: 'FETCH_FAILED', message: result.error || 'Failed to fetch issue' });
             return;
         }
 
@@ -90,7 +91,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             // Add to room (checks for duplicates)
             const addedStory = await roomManager.addJiraStory(roomCode, result.story);
             if (!addedStory) {
-                socket.emit('jiraError', { code: 'DUPLICATE', message: `Story ${parsed.issueKey} ist bereits vorhanden` });
+                socket.emit('jiraError', { code: 'DUPLICATE', message: `Story ${parsed.issueKey} already exists` });
                 return;
             }
 
@@ -102,17 +103,17 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('fetchJiraStories', async (jql: string) => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories importieren');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can import stories');
             return;
         }
 
         const jiraConfig = roomManager.getJiraConfig(roomCode);
         if (!jiraConfig) {
-            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: 'Jira nicht konfiguriert' });
+            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: 'Jira not configured' });
             return;
         }
 
@@ -136,7 +137,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
             io.to(roomCode).emit('storiesUpdated', roomManager.getStories(roomCode));
 
             if (addedCount === 0 && result.stories.length > 0) {
-                socket.emit('jiraError', { code: 'ALL_DUPLICATES', message: 'Alle gefundenen Stories sind bereits vorhanden' });
+                socket.emit('jiraError', { code: 'ALL_DUPLICATES', message: 'All found stories already exist' });
             }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
@@ -145,17 +146,17 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, socketToRoom
     });
 
     socket.on('refreshJiraStories', async () => {
-        const roomCode = socketToRoom.get(socket.id);
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
-        if (!roomManager.isModerator(roomCode, socket.id)) {
-            socket.emit('error', 'Nur der Moderator kann Stories aktualisieren');
+        if (!roomManager.isModerator(roomCode, sessionId)) {
+            socket.emit('error', 'Only the moderator can refresh stories');
             return;
         }
 
         const jiraConfig = roomManager.getJiraConfig(roomCode);
         if (!jiraConfig) {
-            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: 'Jira nicht konfiguriert' });
+            socket.emit('jiraError', { code: 'NOT_CONFIGURED', message: 'Jira not configured' });
             return;
         }
 

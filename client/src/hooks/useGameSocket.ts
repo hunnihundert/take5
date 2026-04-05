@@ -10,12 +10,13 @@ interface IncomingEmoji {
 
 interface UseGameSocketProps {
     socket: Socket | null;
+    sessionId: string | null;
     roomState: RoomState;
     setRoomState: React.Dispatch<React.SetStateAction<RoomState>>;
     setIncomingEmojis: React.Dispatch<React.SetStateAction<IncomingEmoji[]>>;
 }
 
-export const useGameSocket = ({ socket, roomState, setRoomState, setIncomingEmojis }: UseGameSocketProps) => {
+export const useGameSocket = ({ socket, sessionId, roomState, setRoomState, setIncomingEmojis }: UseGameSocketProps) => {
     useEffect(() => {
         if (!socket) return;
 
@@ -85,7 +86,7 @@ export const useGameSocket = ({ socket, roomState, setRoomState, setIncomingEmoj
 
         socket.on('emojiThrown', ({ fromPlayerId, toPlayerId, emoji }: { fromPlayerId: string; toPlayerId: string; emoji: string }) => {
             // Ignore own emojis as they are handled optimistically
-            if (fromPlayerId === socket.id) return;
+            if (fromPlayerId === sessionId) return;
 
             const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             setIncomingEmojis((prev: IncomingEmoji[]) => {

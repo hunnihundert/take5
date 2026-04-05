@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from 'react';
-import { Socket } from 'socket.io-client';
-import { Player, RoomState, Story } from '../types';
+import { useCallback, useEffect } from "react";
+import { Socket } from "socket.io-client";
+import { Player, RoomState, Story } from "../types";
 
 interface UseRoomSocketProps {
     socket: Socket | null;
@@ -8,151 +8,289 @@ interface UseRoomSocketProps {
     setInRoom: (inRoom: boolean) => void;
 }
 
-export const useRoomSocket = ({ socket, setRoomState, setInRoom }: UseRoomSocketProps) => {
+export const useRoomSocket = ({
+    socket,
+    setRoomState,
+    setInRoom,
+}: UseRoomSocketProps) => {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('roomJoined', ({ roomCode, player, players, stories, activeStoryId, jiraConnected }: {
-            roomCode: string;
-            player: Player;
-            players: Player[];
-            stories: Story[];
-            activeStoryId: string | null;
-            jiraConnected: boolean;
-        }) => {
-            const activeStory = activeStoryId ? stories.find((s: Story) => s.id === activeStoryId) || null : null;
-            setRoomState({
+        socket.on(
+            "roomJoined",
+            ({
                 roomCode,
-                currentPlayer: player,
+                player,
                 players,
-                revealed: false,
-                stories: stories || [],
-                activeStory,
-                jiraConnected: jiraConnected || false
-            });
-            setInRoom(true);
+                stories,
+                activeStoryId,
+                jiraConnected,
+            }: {
+                roomCode: string;
+                player: Player;
+                players: Player[];
+                stories: Story[];
+                activeStoryId: string | null;
+                jiraConnected: boolean;
+            }) => {
+                const activeStory = activeStoryId
+                    ? stories.find((s: Story) => s.id === activeStoryId) || null
+                    : null;
+                setRoomState({
+                    roomCode,
+                    currentPlayer: player,
+                    players,
+                    revealed: false,
+                    stories: stories || [],
+                    activeStory,
+                    jiraConnected: jiraConnected || false,
+                });
+                setInRoom(true);
 
-            // Update URL with room code
-            const newUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
-            window.history.pushState({ room: roomCode }, '', newUrl);
-        });
+                // Persist room code and player name to localStorage
+                localStorage.setItem("take5_roomCode", roomCode);
+                localStorage.setItem("take5_playerName", player.name);
 
-        socket.on('playerJoined', (player: Player) => {
+                // Auto-restore avatar from localStorage if player doesn't have one
+                if (!player.avatarUrl) {
+                    const storedAvatar =
+                        localStorage.getItem("take5_avatarUrl");
+                    if (storedAvatar) {
+                        socket.emit("updateAvatar", storedAvatar);
+                    }
+                }
+
+                // Update URL with room code
+                const newUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+                window.history.pushState({ room: roomCode }, "", newUrl);
+            },
+        );
+
+        socket.on("playerJoined", (player: Player) => {
             setRoomState((prev: RoomState) => ({
                 ...prev,
-                players: [...prev.players, player]
+                players: [...prev.players, player],
             }));
         });
 
-        socket.on('playerLeft', ({ playerId, newModeratorId }: { playerId: string; newModeratorId?: string }) => {
-            setRoomState((prev: RoomState) => {
-                // Remove the player who left
-                let updatedPlayers = prev.players.filter((p: Player) => p.id !== playerId);
-
-                // Update moderator status if a new moderator was assigned
-                if (newModeratorId) {
-                    updatedPlayers = updatedPlayers.map((p: Player) =>
-                        p.id === newModeratorId ? { ...p, isModerator: true } : p
+        socket.on(
+            "playerLeft",
+            ({
+                playerId,
+                newModeratorId,
+            }: {
+                playerId: string;
+                newModeratorId?: string;
+            }) => {
+                setRoomState((prev: RoomState) => {
+                    // Remove the player who left
+                    let updatedPlayers = prev.players.filter(
+                        (p: Player) => p.id !== playerId,
                     );
-                }
 
-                // Update current player's moderator status if they became the new moderator
-                let updatedCurrentPlayer = prev.currentPlayer;
-                if (prev.currentPlayer) {
-                    if (newModeratorId && prev.currentPlayer.id === newModeratorId) {
-                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: true };
+                    // Update moderator status if a new moderator was assigned
+                    if (newModeratorId) {
+                        updatedPlayers = updatedPlayers.map((p: Player) =>
+                            p.id === newModeratorId
+                                ? { ...p, isModerator: true }
+                                : p,
+                        );
                     }
-                }
 
-                return {
+                    // Update current player's moderator status if they became the new moderator
+                    let updatedCurrentPlayer = prev.currentPlayer;
+                    if (prev.currentPlayer) {
+                        if (
+                            newModeratorId &&
+                            prev.currentPlayer.id === newModeratorId
+                        ) {
+                            updatedCurrentPlayer = {
+                                ...prev.currentPlayer,
+                                isModerator: true,
+                            };
+                        }
+                    }
+
+                    return {
+                        ...prev,
+                        players: updatedPlayers,
+                        currentPlayer: updatedCurrentPlayer,
+                    };
+                });
+            },
+        );
+
+        socket.on(
+            "playerDisconnected",
+            ({ playerId }: { playerId: string }) => {
+                setRoomState((prev: RoomState) => ({
                     ...prev,
-                    players: updatedPlayers,
-                    currentPlayer: updatedCurrentPlayer
-                };
-            });
-        });
-
-
-
-        socket.on('moderatorTransferred', ({ fromPlayerId, toPlayerId }: { fromPlayerId: string; toPlayerId: string }) => {
-            setRoomState((prev: RoomState) => {
-                const updatedPlayers = prev.players.map((p: Player) => ({
-                    ...p,
-                    isModerator: p.id === toPlayerId ? true : p.id === fromPlayerId ? false : p.isModerator,
+                    players: prev.players.map((p: Player) =>
+                        p.id === playerId ? { ...p, disconnected: true } : p,
+                    ),
                 }));
+            },
+        );
 
-                let updatedCurrentPlayer = prev.currentPlayer;
-                if (prev.currentPlayer) {
-                    if (prev.currentPlayer.id === toPlayerId) {
-                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: true };
-                    } else if (prev.currentPlayer.id === fromPlayerId) {
-                        updatedCurrentPlayer = { ...prev.currentPlayer, isModerator: false };
+        socket.on("playerReconnected", ({ playerId }: { playerId: string }) => {
+            setRoomState((prev: RoomState) => ({
+                ...prev,
+                players: prev.players.map((p: Player) =>
+                    p.id === playerId ? { ...p, disconnected: false } : p,
+                ),
+            }));
+        });
+
+        socket.on(
+            "moderatorTransferred",
+            ({
+                fromPlayerId,
+                toPlayerId,
+            }: {
+                fromPlayerId: string;
+                toPlayerId: string;
+            }) => {
+                setRoomState((prev: RoomState) => {
+                    const updatedPlayers = prev.players.map((p: Player) => ({
+                        ...p,
+                        isModerator:
+                            p.id === toPlayerId
+                                ? true
+                                : p.id === fromPlayerId
+                                  ? false
+                                  : p.isModerator,
+                    }));
+
+                    let updatedCurrentPlayer = prev.currentPlayer;
+                    if (prev.currentPlayer) {
+                        if (prev.currentPlayer.id === toPlayerId) {
+                            updatedCurrentPlayer = {
+                                ...prev.currentPlayer,
+                                isModerator: true,
+                            };
+                        } else if (prev.currentPlayer.id === fromPlayerId) {
+                            updatedCurrentPlayer = {
+                                ...prev.currentPlayer,
+                                isModerator: false,
+                            };
+                        }
                     }
-                }
 
-                return { ...prev, players: updatedPlayers, currentPlayer: updatedCurrentPlayer };
-            });
-        });
+                    return {
+                        ...prev,
+                        players: updatedPlayers,
+                        currentPlayer: updatedCurrentPlayer,
+                    };
+                });
+            },
+        );
 
-        socket.on('avatarUpdated', ({ playerId, avatarUrl }: { playerId: string; avatarUrl: string }) => {
-            setRoomState((prev: RoomState) => {
-                const updatedPlayers = prev.players.map((p: Player) =>
-                    p.id === playerId ? { ...p, avatarUrl } : p
-                );
+        socket.on(
+            "avatarUpdated",
+            ({
+                playerId,
+                avatarUrl,
+            }: {
+                playerId: string;
+                avatarUrl: string;
+            }) => {
+                setRoomState((prev: RoomState) => {
+                    const updatedPlayers = prev.players.map((p: Player) =>
+                        p.id === playerId ? { ...p, avatarUrl } : p,
+                    );
 
-                const updatedCurrentPlayer = prev.currentPlayer?.id === playerId && prev.currentPlayer
-                    ? { ...prev.currentPlayer, avatarUrl }
-                    : prev.currentPlayer;
+                    const updatedCurrentPlayer =
+                        prev.currentPlayer?.id === playerId &&
+                        prev.currentPlayer
+                            ? { ...prev.currentPlayer, avatarUrl }
+                            : prev.currentPlayer;
 
-                return {
-                    ...prev,
-                    players: updatedPlayers,
-                    currentPlayer: updatedCurrentPlayer
-                };
-            });
-        });
+                    // Persist own avatar to localStorage
+                    if (prev.currentPlayer?.id === playerId) {
+                        if (avatarUrl) {
+                            localStorage.setItem("take5_avatarUrl", avatarUrl);
+                        } else {
+                            localStorage.removeItem("take5_avatarUrl");
+                        }
+                    }
 
-        socket.on('error', (message: string) => {
+                    return {
+                        ...prev,
+                        players: updatedPlayers,
+                        currentPlayer: updatedCurrentPlayer,
+                    };
+                });
+            },
+        );
+
+        socket.on("error", (message: string) => {
             alert(message);
         });
 
         return () => {
-            socket.off('roomJoined');
-            socket.off('playerJoined');
-            socket.off('playerLeft');
-            socket.off('moderatorTransferred');
-            socket.off('avatarUpdated');
-            socket.off('error');
+            socket.off("roomJoined");
+            socket.off("playerJoined");
+            socket.off("playerLeft");
+            socket.off("playerDisconnected");
+            socket.off("playerReconnected");
+            socket.off("moderatorTransferred");
+            socket.off("avatarUpdated");
+            socket.off("error");
         };
     }, [socket, setRoomState, setInRoom]);
 
-    const createRoom = useCallback((playerName: string, roomCode?: string) => {
-        if (!socket) return;
-        socket.emit('createRoom', playerName, roomCode, (response: { success: boolean; roomCode?: string; error?: string }) => {
-            if (!response.success) {
-                alert(response.error || 'Fehler beim Erstellen des Raums');
-            }
-        });
-    }, [socket]);
+    const createRoom = useCallback(
+        (playerName: string, roomCode?: string) => {
+            if (!socket) return;
+            socket.emit(
+                "createRoom",
+                playerName,
+                roomCode,
+                (response: {
+                    success: boolean;
+                    roomCode?: string;
+                    error?: string;
+                }) => {
+                    if (!response.success) {
+                        alert(response.error || "Failed to create room");
+                    }
+                },
+            );
+        },
+        [socket],
+    );
 
-    const joinRoom = useCallback((roomCode: string, playerName: string) => {
-        if (!socket) return;
-        socket.emit('joinRoom', { roomCode, playerName }, (response: { success: boolean; error?: string }) => {
-            if (!response.success) {
-                alert(response.error || 'Fehler beim Beitreten');
-            }
-        });
-    }, [socket]);
+    const joinRoom = useCallback(
+        (roomCode: string, playerName: string) => {
+            if (!socket) return;
+            socket.emit(
+                "joinRoom",
+                { roomCode, playerName },
+                (response: { success: boolean; error?: string }) => {
+                    if (!response.success) {
+                        alert(response.error || "Failed to join room");
+                    }
+                },
+            );
+        },
+        [socket],
+    );
 
-    const updateAvatar = useCallback((avatarUrl: string | null) => {
-        if (!socket) return;
-        socket.emit('updateAvatar', avatarUrl);
-    }, [socket]);
+    const updateAvatar = useCallback(
+        (avatarUrl: string | null) => {
+            if (!socket) return;
+            socket.emit("updateAvatar", avatarUrl);
+        },
+        [socket],
+    );
 
-    const transferModerator = useCallback((toPlayerId: string) => {
-        if (!socket) return;
-        socket.emit('transferModerator', { toPlayerId });
-    }, [socket]);
+    const transferModerator = useCallback(
+        (toPlayerId: string) => {
+            if (!socket) return;
+            socket.emit("transferModerator", { toPlayerId });
+        },
+        [socket],
+    );
 
     return { createRoom, joinRoom, updateAvatar, transferModerator };
 };
