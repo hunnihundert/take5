@@ -271,6 +271,7 @@ export class JiraService {
         'storypoints',
         'story point estimate',
         'points',
+        'punkte',
         'story-points'
       ];
 
