@@ -127,7 +127,7 @@ export class JiraService {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { story: null, error: `Netzwerkfehler: ${message}` };
+      return { story: null, error: `Network error: ${message}` };
     }
   }
 
@@ -193,7 +193,7 @@ export class JiraService {
       return { stories };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { stories: [], error: `Netzwerkfehler: ${message}` };
+      return { stories: [], error: `Network error: ${message}` };
     }
   }
 
@@ -202,7 +202,7 @@ export class JiraService {
    */
   static async updateStoryPoints(config: JiraConfig, issueKey: string, points: number): Promise<{ success: boolean; error?: string }> {
     if (!config.storyPointsFieldId) {
-      return { success: false, error: 'Story Points Feld nicht konfiguriert' };
+      return { success: false, error: 'Story points field not configured' };
     }
 
     try {
@@ -235,13 +235,13 @@ export class JiraService {
       }
 
       if (response.status === 404) {
-        return { success: false, error: 'Issue nicht gefunden' };
+        return { success: false, error: 'Issue not found' };
       }
 
       return { success: false, error: `Update error: ${response.status}` };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { success: false, error: `Netzwerkfehler: ${message}` };
+      return { success: false, error: `Network error: ${message}` };
     }
   }
 
@@ -259,7 +259,7 @@ export class JiraService {
       );
 
       if (!response.ok) {
-        return { fieldId: null, error: 'Konnte Felder nicht abrufen' };
+        return { fieldId: null, error: 'Could not fetch fields' };
       }
 
       const fields = await response.json() as Array<{ id: string; name: string }>;
@@ -270,7 +270,7 @@ export class JiraService {
         'story point',
         'storypoints',
         'story point estimate',
-        'punkte',
+        'points',
         'story-points'
       ];
 
@@ -281,7 +281,7 @@ export class JiraService {
       return { fieldId: field?.id || null };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { fieldId: null, error: `Netzwerkfehler: ${message}` };
+      return { fieldId: null, error: `Network error: ${message}` };
     }
   }
 
