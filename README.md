@@ -26,7 +26,8 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **Smooth Animations** - Flip animation when cards are revealed
 - **Observer Mode** - Watch without participating in voting
 - **No Duplicate Names** - Server-side validation prevents name conflicts
-- **Moderator Controls** - Room creator can reveal cards and start new rounds
+- **Moderator Controls** - Room creator can reveal cards, start new rounds, and transfer moderator role
+- **Moderator Transfer** - Right-click any player to hand over the moderator role
 - **Auto Average** - Instant result calculation after reveal
 - **Auto Reveal** - Cards automatically reveal when all active players have voted
 - **Confetti on Consensus** - Celebration animation when everyone agrees
@@ -331,7 +332,13 @@ npm run db:migrate --workspace=server
 - **Categories**: Funny, Numbers, Faces, Gestures, Hearts, Objects, Food, Animals, Nature
 - **Recently used**: Your last 5 thrown emojis appear at the top
 
-### 8. Jira Integration (Moderator)
+### 8. Transfer moderator role (Moderator only)
+- **Open**: Right-click another player at the poker table
+- **Select**: Click "Make Moderator" (👑) in the context menu
+- The selected player immediately becomes the new moderator
+- The previous moderator loses all moderator privileges
+
+### 9. Jira Integration (Moderator)
 
 #### Connect Jira
 1. Click the Jira icon in the story list
@@ -356,11 +363,13 @@ npm run db:migrate --workspace=server
 ### Moderator
 - The first player to create a room becomes moderator automatically
 - If the moderator leaves, a new moderator is assigned automatically
+- The moderator can transfer the role to any other player by right-clicking them and selecting "Make Moderator"
 - Only the moderator can:
   - Reveal cards early
   - Start new rounds
   - Manage stories
   - Configure Jira
+  - Transfer the moderator role
 
 ### Card values
 Fibonacci sequence: **1, 2, 3, 5, 8, 13**
@@ -385,6 +394,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 - `toggleObserver()` - Toggle observer mode
 - `updateAvatar(avatarUrl)` - Update avatar (Base64 or null)
 - `throwEmoji({ toPlayerId, emoji })` - Throw an emoji at a player
+- `transferModerator({ toPlayerId })` - Transfer moderator role to another player (moderator only)
 
 **Story events (moderator only):**
 - `addManualStory(summary)` - Add a manual story
@@ -413,6 +423,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 - `observerToggled({ playerId, isObserver })` - Observer status changed
 - `avatarUpdated({ playerId, avatarUrl })` - Avatar updated
 - `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji thrown
+- `moderatorTransferred({ fromPlayerId, toPlayerId })` - Moderator role transferred
 - `error(message)` - An error occurred
 
 **Story events:**

@@ -40,33 +40,37 @@ npm run db:migrate --workspace=server   # Run migrations
 ## Architecture
 
 ### Monorepo Structure
+
 - **`/client`** - React 18 + Vite + Tailwind CSS frontend
 - **`/server`** - Express + Socket.io backend with optional PostgreSQL (Drizzle ORM)
 - **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig, CardValue
 - **`/e2e`** - Playwright end-to-end tests
 
 ### Real-time Communication
+
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`
+**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`
 
 **Client -> Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
 
 **Client -> Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
 
-**Server -> Client:** `sessionCreated`, `roomJoined`, `playerJoined`, `playerLeft`, `playerDisconnected`, `playerReconnected`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `error`
+**Server -> Client:** `sessionCreated`, `roomJoined`, `playerJoined`, `playerLeft`, `playerDisconnected`, `playerReconnected`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`,`moderatorTransferred`, `error`
 
 **Server -> Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
 
 **Server -> Client (Jira):** `jiraConfigured`, `jiraDisconnected`, `jiraError`
 
 ### State Management
+
 - **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set). `SessionManager` tracks session↔socket mappings and 60-second disconnect grace period timers.
 - **Frontend:** React Context (`GameContext`) dispatching to specialized socket hooks (`useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). Includes 10-minute heartbeat for Render.com keep-alive. Player name and avatar persisted in `localStorage`.
 
 ### Key Files
 
 **Server:**
+
 - `server/src/index.ts` - Express server, Socket.io setup, session middleware, reconnection logic, health endpoint
 - `server/src/sessionManager.ts` - Session tracking: session↔socket mapping, disconnect grace period timers
 - `server/src/roomManager.ts` - Core game logic (room creation, player management, voting, DB hydration)
@@ -81,6 +85,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 - `server/src/utils/logger.ts` - Console logger (dev-only)
 
 **Client:**
+
 - `client/src/context/GameContext.tsx` - Central state management via React Context
 - `client/src/hooks/useSocket.ts` - Base Socket.io connection
 - `client/src/hooks/useRoomSocket.ts` - Room lifecycle events
@@ -94,24 +99,28 @@ Socket.io handles all game state synchronization. Key event patterns:
 - `client/src/utils/confetti.ts` - Canvas-confetti wrapper for consensus celebrations
 
 **Shared:**
+
 - `shared/src/index.ts` - TypeScript interfaces (Player, Story, RoomState, JiraConfig, CardValue)
 
 ## Environment Variables
 
 **Server:**
+
 - `PORT` - Server port (default: 3001)
 - `NODE_ENV` - development/production
 - `DATABASE_URL` - PostgreSQL connection string (optional; enables room/story persistence)
 - `ALLOWED_ORIGINS` - Comma-separated CORS origins
 
 **Client:**
+
 - `VITE_SOCKET_URL` - Socket.io server URL (defaults to localhost:3001 in dev, current origin in prod)
 
 ## Game-Specific Logic
 
 - **Card values:** Fibonacci sequence (1, 2, 3, 5, 8, 13)
 - **Room codes:** 6-character uppercase alphanumeric (auto-generated), or custom 3-12 character codes
-- **Moderator:** First player becomes moderator; auto-reassigns on disconnect (after grace period)
+- **Moderator:** First player becomes moderator; auto-reassigns on disconnect (after grace period); can be manually transferred via right-click context menu (`transferModerator` event → `moderatorTransferred` broadcast)
+
 - **Auto-reveal:** Cards reveal automatically when all non-observer players vote
 - **Consensus:** Confetti animation triggers when all players select the same card
 - **Name uniqueness:** Duplicate player names are rejected per room

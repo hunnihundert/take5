@@ -6,6 +6,7 @@ server/node_modules/
 # Build outputs
 client/dist/
 server/dist/
+shared/dist/
 build/
 *.tsbuildinfo
 *.d.ts

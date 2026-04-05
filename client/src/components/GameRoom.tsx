@@ -22,6 +22,7 @@ const GameRoom = () => {
     toggleObserver,
     updateAvatar,
     throwEmoji,
+    transferModerator,
     incomingEmojis,
     removeIncomingEmoji,
     addManualStory,
@@ -166,6 +167,13 @@ const GameRoom = () => {
       // Don't close the picker - user can keep throwing emojis or click outside to close
     }
   }, [emojiPicker, throwEmoji]);
+
+  const handleMakeModeratorClick = useCallback(() => {
+    if (contextMenu) {
+      transferModerator(contextMenu.player.id);
+      setContextMenu(null);
+    }
+  }, [contextMenu, transferModerator]);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -405,6 +413,8 @@ const GameRoom = () => {
           playerName={contextMenu.player.name}
           onThrowEmoji={handleThrowEmojiClick}
           onClose={handleContextMenuClose}
+          showMakeModerator={currentPlayer?.isModerator === true}
+          onMakeModerator={handleMakeModeratorClick}
         />
       )}
 

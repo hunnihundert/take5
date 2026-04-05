@@ -29,6 +29,7 @@ interface GameContextType {
     toggleObserver: () => void;
     updateAvatar: (avatarUrl: string | null) => void;
     throwEmoji: (toPlayerId: string, emoji: string) => void;
+    transferModerator: (toPlayerId: string) => void;
     removeIncomingEmoji: (id: string) => void;
 
     // Story management
@@ -115,7 +116,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, [inRoom]);
 
     // Initialize logic hooks
-    const { createRoom, joinRoom, updateAvatar } = useRoomSocket({ socket, setRoomState, setInRoom });
+    const { createRoom, joinRoom, updateAvatar, transferModerator } = useRoomSocket({ socket, setRoomState, setInRoom });
     const { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji } = useGameSocket({
         socket,
         sessionId,
@@ -144,6 +145,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toggleObserver,
         updateAvatar,
         throwEmoji,
+        transferModerator,
         removeIncomingEmoji,
         addManualStory,
         removeStory,
