@@ -25,11 +25,11 @@ export class RoomRepository {
         
         // Handle Postgres unique_violation error specifically if needed by caller
         if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
-            throw new DatabaseError('Ein Eintrag mit diesem Schlüssel existiert bereits.', '23505');
+            throw new DatabaseError('An entry with this key already exists.', '23505');
         }
         
         // Sanitize message for the user but keep it informative
-        throw new DatabaseError('Datenbank-Fehler. Bitte versuche es später erneut.');
+        throw new DatabaseError('Database error. Please try again later.');
     }
 
     async createRoom(code: string): Promise<void> {

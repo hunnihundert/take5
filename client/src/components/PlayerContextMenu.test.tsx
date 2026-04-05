@@ -11,39 +11,39 @@ const baseProps = {
 };
 
 describe('PlayerContextMenu', () => {
-    it('always shows the Emoji werfen option', () => {
+    it('always shows the Throw emoji option', () => {
         render(<PlayerContextMenu {...baseProps} />);
-        expect(screen.getByText('Emoji werfen')).toBeInTheDocument();
+        expect(screen.getByText('Throw emoji')).toBeInTheDocument();
     });
 
-    it('does NOT show "Zum Moderator machen" when showMakeModerator is false', () => {
+    it('does NOT show "Make moderator" when showMakeModerator is false', () => {
         render(<PlayerContextMenu {...baseProps} showMakeModerator={false} />);
-        expect(screen.queryByText('Zum Moderator machen')).toBeNull();
+        expect(screen.queryByText('Make moderator')).toBeNull();
     });
 
-    it('does NOT show "Zum Moderator machen" when showMakeModerator is omitted', () => {
+    it('does NOT show "Make moderator" when showMakeModerator is omitted', () => {
         render(<PlayerContextMenu {...baseProps} />);
-        expect(screen.queryByText('Zum Moderator machen')).toBeNull();
+        expect(screen.queryByText('Make moderator')).toBeNull();
     });
 
-    it('shows "Zum Moderator machen" when showMakeModerator is true (current player is moderator)', () => {
+    it('shows "Make moderator" when showMakeModerator is true (current player is moderator)', () => {
         render(<PlayerContextMenu {...baseProps} showMakeModerator={true} onMakeModerator={vi.fn()} />);
-        expect(screen.getByText('Zum Moderator machen')).toBeInTheDocument();
+        expect(screen.getByText('Make moderator')).toBeInTheDocument();
     });
 
-    it('calls onMakeModerator when "Zum Moderator machen" is clicked', () => {
+    it('calls onMakeModerator when "Make moderator" is clicked', () => {
         const onMakeModerator = vi.fn();
         render(<PlayerContextMenu {...baseProps} showMakeModerator={true} onMakeModerator={onMakeModerator} />);
 
-        fireEvent.click(screen.getByText('Zum Moderator machen'));
+        fireEvent.click(screen.getByText('Make moderator'));
         expect(onMakeModerator).toHaveBeenCalledOnce();
     });
 
-    it('calls onThrowEmoji when "Emoji werfen" is clicked', () => {
+    it('calls onThrowEmoji when "Throw emoji" is clicked', () => {
         const onThrowEmoji = vi.fn();
         render(<PlayerContextMenu {...baseProps} onThrowEmoji={onThrowEmoji} showMakeModerator={true} />);
 
-        fireEvent.click(screen.getByText('Emoji werfen'));
+        fireEvent.click(screen.getByText('Throw emoji'));
         expect(onThrowEmoji).toHaveBeenCalledOnce();
     });
 });
