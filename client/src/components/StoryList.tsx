@@ -75,7 +75,7 @@ const StoryList = ({
           Stories
           {totalCount > 0 && (
             <span className="ml-2 text-sm font-normal text-gray-500">
-              ({votedCount}/{totalCount} geschätzt)
+              ({votedCount}/{totalCount} estimated)
             </span>
           )}
         </h2>
@@ -88,7 +88,7 @@ const StoryList = ({
                   ? 'text-green-600 bg-green-50 hover:bg-green-100'
                   : 'text-gray-500 hover:text-primary-600 hover:bg-primary-50'
               }`}
-              title={jiraConnected ? 'Jira verbunden' : 'Mit Jira verbinden'}
+              title={jiraConnected ? 'Jira connected' : 'Connect to Jira'}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11.571 11.513H0l5.786-5.786 5.785 5.786zM12.429 12.487H24l-5.786 5.786-5.785-5.786z"/>
@@ -102,7 +102,7 @@ const StoryList = ({
               onClick={onClearStories}
               className="text-sm text-red-600 hover:text-red-700 font-medium"
             >
-              Alle löschen
+              Clear all
             </button>
           )}
         </div>
@@ -117,14 +117,14 @@ const StoryList = ({
               value={jiraLinkInput}
               onChange={(e) => setJiraLinkInput(e.target.value)}
               onKeyDown={handleJiraLinkKeyDown}
-              placeholder="Jira-Link einfügen..."
+              placeholder="Paste Jira link..."
               className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
             <button
               onClick={handleJiraLinkSubmit}
               disabled={!jiraLinkInput.trim()}
               className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 transition-colors"
-              title="Story importieren"
+              title="Import story"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -140,9 +140,9 @@ const StoryList = ({
           <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
-          <p>Keine Stories vorhanden</p>
+          <p>No stories yet</p>
           {isModerator && (
-            <p className="text-sm mt-1">Füge Stories hinzu, um mit dem Schätzen zu beginnen</p>
+            <p className="text-sm mt-1">Add stories to start estimating</p>
           )}
         </div>
       ) : (
@@ -167,7 +167,7 @@ const StoryList = ({
                       )}
                       {story.isManual && (
                         <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                          Manuell
+                          Manual
                         </span>
                       )}
                       {story.url && !story.key && (
@@ -177,8 +177,8 @@ const StoryList = ({
                           rel="noopener noreferrer"
                           className="text-gray-400 hover:text-primary-600 transition-colors"
                           onClick={(e) => e.stopPropagation()}
-                          title="Link öffnen"
-                          aria-label="Externen Link öffnen"
+                          title="Open link"
+                          aria-label="Open external link"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -194,8 +194,8 @@ const StoryList = ({
                           rel="noopener noreferrer"
                           className="text-xs font-mono bg-blue-50 text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
                           onClick={(e) => e.stopPropagation()}
-                          title="In Jira öffnen"
-                          aria-label={`In Jira öffnen: ${story.key}`}
+                          title="Open in Jira"
+                          aria-label={`Open in Jira: ${story.key}`}
                         >
                           {story.key}
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -220,7 +220,7 @@ const StoryList = ({
                       <button
                         onClick={() => onSelectStory(null)}
                         className="p-1.5 text-primary-600 hover:bg-primary-100 rounded"
-                        title="Abwählen"
+                        title="Deselect"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -230,7 +230,7 @@ const StoryList = ({
                       <button
                         onClick={() => onSelectStory(story.id)}
                         className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded"
-                        title="Zur Abstimmung auswählen"
+                        title="Select for voting"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -240,7 +240,7 @@ const StoryList = ({
                     <button
                       onClick={() => onRemoveStory(story.id)}
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                      title="Entfernen"
+                      title="Remove"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -263,7 +263,7 @@ const StoryList = ({
                 value={newStorySummary}
                 onChange={(e) => setNewStorySummary(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Story-Beschreibung eingeben..."
+                placeholder="Enter story description..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 rows={2}
                 autoFocus
@@ -274,7 +274,7 @@ const StoryList = ({
                   disabled={!newStorySummary.trim()}
                   className="flex-1 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
                 >
-                  Hinzufügen
+                  Add
                 </button>
                 <button
                   onClick={() => {
@@ -283,7 +283,7 @@ const StoryList = ({
                   }}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
               </div>
             </div>
@@ -295,7 +295,7 @@ const StoryList = ({
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Story hinzufügen
+              Add story
             </button>
           )}
         </div>

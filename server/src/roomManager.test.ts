@@ -73,7 +73,7 @@ describe('RoomManager', () => {
 
             expect(result.success).toBe(false);
             if (!result.success) {
-                expect(result.error).toBe('Raum mit diesem Code existiert bereits.');
+                expect(result.error).toBe('A room with this code already exists.');
             }
         });
 
@@ -81,7 +81,7 @@ describe('RoomManager', () => {
             const result = await roomManager.createRoom(playerName, playerId, 'INVALID-CODE!');
             expect(result.success).toBe(false);
             if (!result.success) {
-                expect(result.error).toContain('Ungültiger Raum-Code');
+                expect(result.error).toContain('Invalid room code');
             }
         });
 
@@ -124,7 +124,7 @@ describe('RoomManager', () => {
             const result = await roomManager.joinRoom('INVALID', playerName, playerId);
             expect(result.success).toBe(false);
             if (!result.success) {
-                expect(result.error).toBe('Raum nicht gefunden');
+                expect(result.error).toBe('Room not found');
             }
         });
 
@@ -137,7 +137,7 @@ describe('RoomManager', () => {
 
             expect(result.success).toBe(false);
             if (!result.success) {
-                expect(result.error).toBe('Dieser Name wird bereits verwendet');
+                expect(result.error).toBe('This name is already taken');
             }
         });
 

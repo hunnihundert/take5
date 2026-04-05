@@ -64,7 +64,7 @@ const Results = ({ players }: ResultsProps) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeIn">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">Ergebnisse</h2>
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Results</h2>
 
       {hasConsensus && (
         <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 animate-scaleIn">
@@ -73,8 +73,8 @@ const Results = ({ players }: ResultsProps) => {
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <div>
-              <p className="text-lg font-bold text-green-800">Konsens erreicht!</p>
-              <p className="text-sm text-green-700">Alle Spieler sind sich einig: {sortedCards[0]} Punkte</p>
+              <p className="text-lg font-bold text-green-800">Consensus reached!</p>
+              <p className="text-sm text-green-700">All players agree: {sortedCards[0]} points</p>
             </div>
           </div>
         </div>
@@ -82,7 +82,7 @@ const Results = ({ players }: ResultsProps) => {
 
       {average !== null && !hasConsensus && (
         <div className="mb-6 p-4 bg-primary-50 rounded-lg border-2 border-primary-200 animate-scaleIn">
-          <p className="text-sm text-gray-600 mb-1">Durchschnitt</p>
+          <p className="text-sm text-gray-600 mb-1">Average</p>
           <p className="text-4xl font-bold text-primary-700">{average}</p>
         </div>
       )}
@@ -100,7 +100,7 @@ const Results = ({ players }: ResultsProps) => {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-600 mb-1">
-                  {cardGroups[cardValue].length} {cardGroups[cardValue].length === 1 ? 'Spieler' : 'Spieler'}
+                  {cardGroups[cardValue].length} {cardGroups[cardValue].length === 1 ? 'player' : 'players'}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {cardGroups[cardValue].map(player => (
@@ -121,7 +121,7 @@ const Results = ({ players }: ResultsProps) => {
       {activePlayers.some(p => !p.selectedCard) && (
         <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
           <p className="text-sm text-yellow-800">
-            <span className="font-semibold">Hinweis:</span> Einige Spieler haben keine Karte gewählt.
+            <span className="font-semibold">Note:</span> Some players have not selected a card.
           </p>
         </div>
       )}
@@ -129,7 +129,7 @@ const Results = ({ players }: ResultsProps) => {
       {players.filter(p => p.isObserver).length > 0 && (
         <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
           <p className="text-sm text-purple-800">
-            <span className="font-semibold">Beobachter:</span> {players.filter(p => p.isObserver).map(p => p.name).join(', ')}
+            <span className="font-semibold">Observers:</span> {players.filter(p => p.isObserver).map(p => p.name).join(', ')}
           </p>
         </div>
       )}

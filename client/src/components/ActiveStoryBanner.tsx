@@ -42,8 +42,8 @@ const ActiveStoryBanner = ({ story }: ActiveStoryBannerProps) => {
             target="_blank"
             rel="noopener noreferrer"
             className="flex-shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
-            title="Link öffnen"
-            aria-label="Link öffnen"
+            title="Open link"
+            aria-label="Open link"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

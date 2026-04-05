@@ -63,17 +63,17 @@ export class JiraService {
       }
 
       if (response.status === 401) {
-        return { success: false, error: 'Ungültige Anmeldedaten' };
+        return { success: false, error: 'Invalid credentials' };
       }
 
       if (response.status === 403) {
-        return { success: false, error: 'Zugriff verweigert. Bitte API-Token-Berechtigungen prüfen.' };
+        return { success: false, error: 'Access denied. Please check your API token permissions.' };
       }
 
-      return { success: false, error: `Verbindungsfehler: ${response.status}` };
+      return { success: false, error: `Connection error: ${response.status}` };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      return { success: false, error: `Verbindung fehlgeschlagen: ${message}` };
+      return { success: false, error: `Connection failed: ${message}` };
     }
   }
 
@@ -96,12 +96,12 @@ export class JiraService {
 
       if (!response.ok) {
         if (response.status === 404) {
-          return { story: null, error: 'Issue nicht gefunden' };
+          return { story: null, error: 'Issue not found' };
         }
         if (response.status === 401) {
-          return { story: null, error: 'Ungültige Anmeldedaten' };
+          return { story: null, error: 'Invalid credentials' };
         }
-        return { story: null, error: `Fehler beim Abrufen: ${response.status}` };
+        return { story: null, error: `Fetch error: ${response.status}` };
       }
 
       const issue = await response.json() as JiraIssue;
@@ -163,12 +163,12 @@ export class JiraService {
 
       if (!response.ok) {
         if (response.status === 400) {
-          return { stories: [], error: 'Ungültige JQL-Abfrage' };
+          return { stories: [], error: 'Invalid JQL query' };
         }
         if (response.status === 401) {
-          return { stories: [], error: 'Ungültige Anmeldedaten' };
+          return { stories: [], error: 'Invalid credentials' };
         }
-        return { stories: [], error: `Suchfehler: ${response.status}` };
+        return { stories: [], error: `Search error: ${response.status}` };
       }
 
       const data = await response.json() as JiraSearchResponse;
@@ -227,18 +227,18 @@ export class JiraService {
       }
 
       if (response.status === 401) {
-        return { success: false, error: 'Ungültige Anmeldedaten' };
+        return { success: false, error: 'Invalid credentials' };
       }
 
       if (response.status === 403) {
-        return { success: false, error: 'Keine Berechtigung zum Bearbeiten' };
+        return { success: false, error: 'No permission to edit' };
       }
 
       if (response.status === 404) {
         return { success: false, error: 'Issue nicht gefunden' };
       }
 
-      return { success: false, error: `Aktualisierungsfehler: ${response.status}` };
+      return { success: false, error: `Update error: ${response.status}` };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: `Netzwerkfehler: ${message}` };

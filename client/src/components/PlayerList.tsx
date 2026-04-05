@@ -10,7 +10,7 @@ const PlayerList = ({ players, currentPlayerId, revealed }: PlayerListProps) => 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        Spieler ({players.length})
+        Players ({players.length})
       </h2>
       <div className="space-y-3">
         {players.map((player) => (
@@ -50,12 +50,12 @@ const PlayerList = ({ players, currentPlayerId, revealed }: PlayerListProps) => 
                   )}
                   {player.isObserver && (
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">
-                      BEOBACHTER
+                      OBSERVER
                     </span>
                   )}
                   {player.id === currentPlayerId && (
                     <span className="px-2 py-0.5 bg-primary-100 text-primary-800 text-xs rounded-full">
-                      Du
+                      You
                     </span>
                   )}
                 </div>

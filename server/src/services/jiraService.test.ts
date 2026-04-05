@@ -66,7 +66,7 @@ describe('JiraService', () => {
 
             const result = await JiraService.testConnection(mockConfig);
             expect(result.success).toBe(false);
-            expect(result.error).toContain('Ungültige Anmeldedaten');
+            expect(result.error).toContain('Invalid credentials');
         });
 
         it('should handle slow responses', async () => {

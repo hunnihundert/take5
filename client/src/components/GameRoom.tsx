@@ -102,13 +102,13 @@ const GameRoom = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Bitte wähle eine Bilddatei aus');
+      alert('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Das Bild ist zu groß. Bitte wähle eine Datei unter 5MB');
+      alert('The image is too large. Please select a file under 5MB');
       return;
     }
 
@@ -204,7 +204,7 @@ const GameRoom = () => {
                   <button
                     onClick={handleAvatarClick}
                     className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors"
-                    title="Avatar ändern"
+                    title="Change avatar"
                   >
                     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -235,7 +235,7 @@ const GameRoom = () => {
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Planning Poker</h1>
                 <p className="text-gray-600 mt-1">
-                  Willkommen, <span className="font-semibold">{currentPlayer?.name}</span>
+                  Welcome, <span className="font-semibold">{currentPlayer?.name}</span>
                   {currentPlayer?.isModerator && (
                     <span className="ml-2 px-3 py-1 bg-primary-100 text-primary-700 text-sm rounded-full">
                       Moderator
@@ -243,7 +243,7 @@ const GameRoom = () => {
                   )}
                   {currentPlayer?.isObserver && (
                     <span className="ml-2 px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full">
-                      Beobachter
+                      Observer
                     </span>
                   )}
                 </p>
@@ -257,11 +257,11 @@ const GameRoom = () => {
                   : 'bg-purple-600 hover:bg-purple-700 text-white'
                   }`}
               >
-                {currentPlayer?.isObserver ? 'Aktiv teilnehmen' : 'Beobachter-Modus'}
+                {currentPlayer?.isObserver ? 'Participate actively' : 'Observer mode'}
               </button>
               <div className="flex flex-col gap-2">
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">Raum-Code</p>
+                  <p className="text-sm text-gray-600">Room code</p>
                   <p className="text-2xl font-bold text-primary-600 font-mono">{roomCode}</p>
                 </div>
                 <button
@@ -343,7 +343,7 @@ const GameRoom = () => {
           {!revealed && !currentPlayer?.isObserver && (
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Wähle deine Karte
+                Choose your card
               </h2>
               <CardDeck
                 selectedCard={currentPlayer?.selectedCard || null}
@@ -361,8 +361,8 @@ const GameRoom = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Beobachter-Modus aktiv</h3>
-                <p className="text-gray-600">Du beobachtest die Abstimmung, ohne selbst teilzunehmen.</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Observer mode active</h3>
+                <p className="text-gray-600">You are observing the vote without participating.</p>
               </div>
             </div>
           )}
@@ -371,7 +371,7 @@ const GameRoom = () => {
           {currentPlayer?.isModerator && (
             <div className={`bg-white rounded-2xl shadow-lg p-6 ${!revealed && !currentPlayer?.isObserver ? '' : 'lg:col-span-2'}`}>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Moderator Steuerung
+                Moderator controls
               </h2>
               <div className="flex flex-col sm:flex-row gap-3">
                 {!revealed && (
@@ -379,7 +379,7 @@ const GameRoom = () => {
                     onClick={revealCards}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                   >
-                    Karten aufdecken
+                    Reveal cards
                   </button>
                 )}
                 {revealed && (
@@ -387,7 +387,7 @@ const GameRoom = () => {
                     onClick={startNewRound}
                     className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                   >
-                    Neue Runde starten
+                    Start new round
                   </button>
                 )}
               </div>

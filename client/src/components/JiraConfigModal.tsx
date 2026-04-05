@@ -58,7 +58,7 @@ const JiraConfigModal = ({
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800">
-              {isConnected ? 'Jira-Verbindung' : 'Mit Jira verbinden'}
+              {isConnected ? 'Jira connection' : 'Connect to Jira'}
             </h2>
             <button
               onClick={onClose}
@@ -78,8 +78,8 @@ const JiraConfigModal = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <div>
-                    <p className="font-medium text-green-800">Verbunden mit Jira</p>
-                    <p className="text-sm text-green-600">Du kannst jetzt Jira-Issues importieren</p>
+                    <p className="font-medium text-green-800">Connected to Jira</p>
+                    <p className="text-sm text-green-600">You can now import Jira issues</p>
                   </div>
                 </div>
               </div>
@@ -87,7 +87,7 @@ const JiraConfigModal = ({
                 onClick={handleDisconnect}
                 className="w-full py-2 px-4 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
               >
-                Verbindung trennen
+                Disconnect
               </button>
             </div>
           ) : (
@@ -100,12 +100,12 @@ const JiraConfigModal = ({
                   type="url"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://dein-team.atlassian.net"
+                  placeholder="https://your-team.atlassian.net"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Die URL deiner Jira-Instanz
+                  The URL of your Jira instance
                 </p>
               </div>
 
@@ -117,12 +117,12 @@ const JiraConfigModal = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="deine@email.de"
+                  placeholder="your@email.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Die E-Mail deines Atlassian-Kontos
+                  The email of your Atlassian account
                 </p>
               </div>
 
@@ -134,36 +134,36 @@ const JiraConfigModal = ({
                   type="password"
                   value={apiToken}
                   onChange={(e) => setApiToken(e.target.value)}
-                  placeholder="Dein API-Token"
+                  placeholder="Your API token"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Erstelle ein Token unter{' '}
+                  Create a token at{' '}
                   <a
                     href="https://id.atlassian.com/manage-profile/security/api-tokens"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary-600 hover:underline"
                   >
-                    Atlassian API-Tokens
+                    Atlassian API Tokens
                   </a>
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Story Points Feld ID (optional)
+                  Story Points field ID (optional)
                 </label>
                 <input
                   type="text"
                   value={storyPointsFieldId}
                   onChange={(e) => setStoryPointsFieldId(e.target.value)}
-                  placeholder="z.B. customfield_10016"
+                  placeholder="e.g. customfield_10016"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Die ID des Story Points Feldes in deinem Jira. Ohne diese Angabe können keine Story Points synchronisiert werden.
+                  The ID of the Story Points field in your Jira. Without this, story points cannot be synced.
                 </p>
               </div>
 
@@ -173,7 +173,7 @@ const JiraConfigModal = ({
                   onClick={onClose}
                   className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -186,10 +186,10 @@ const JiraConfigModal = ({
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                      Verbinde...
+                      Connecting...
                     </>
                   ) : (
-                    'Verbinden'
+                    'Connect'
                   )}
                 </button>
               </div>

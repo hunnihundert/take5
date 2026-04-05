@@ -49,7 +49,7 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeMo
       style={adjustedStyle}
     >
       <div className="px-3 py-2 border-b border-gray-100">
-        <span className="text-xs text-gray-500">Spieler: </span>
+        <span className="text-xs text-gray-500">Player: </span>
         <span className="text-sm font-medium text-gray-800">{playerName}</span>
       </div>
       <button
@@ -59,7 +59,7 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeMo
         className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 flex items-center gap-2 transition-colors"
       >
         <span className="text-lg">🎯</span>
-        <span>Emoji werfen</span>
+        <span>Throw emoji</span>
       </button>
       {showMakeModerator && onMakeModerator && (
         <button
@@ -69,7 +69,7 @@ const PlayerContextMenu = ({ x, y, playerName, onThrowEmoji, onClose, showMakeMo
           className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-2 transition-colors"
         >
           <span className="text-lg">👑</span>
-          <span>Zum Moderator machen</span>
+          <span>Make moderator</span>
         </button>
       )}
     </div>

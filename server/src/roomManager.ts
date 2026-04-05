@@ -46,7 +46,7 @@ export class RoomManager {
       // Validation: 3-12 alphanumeric characters
       const codeRegex = /^[A-Z0-9]{3,12}$/;
       if (!codeRegex.test(code)) {
-        return { success: false, error: 'Ungültiger Raum-Code. Verwende 3-12 alphanumerische Zeichen.' };
+        return { success: false, error: 'Invalid room code. Use 3-12 alphanumeric characters.' };
       }
 
       // Check for collisions
@@ -54,7 +54,7 @@ export class RoomManager {
       const inDb = this.repository ? await this.repository.roomExists(code) : false;
 
       if (inMemory || inDb) {
-        return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
+        return { success: false, error: 'A room with this code already exists.' };
       }
     } else {
       code = await this.generateRoomCode();
@@ -87,7 +87,7 @@ export class RoomManager {
       } catch (error: unknown) {
         // Handle Postgres unique_violation error (23505) via DatabaseError
         if (error instanceof DatabaseError && error.code === '23505') {
-          return { success: false, error: 'Raum mit diesem Code existiert bereits.' };
+          return { success: false, error: 'A room with this code already exists.' };
         }
         const message = error instanceof Error ? error.message : String(error);
         return { success: false, error: message };
@@ -129,7 +129,7 @@ export class RoomManager {
     }
 
     if (!room) {
-      return { success: false, error: 'Raum nicht gefunden' };
+      return { success: false, error: 'Room not found' };
     }
 
     // Check if name already exists in the room
@@ -138,7 +138,7 @@ export class RoomManager {
     );
 
     if (nameExists) {
-      return { success: false, error: 'Dieser Name wird bereits verwendet' };
+      return { success: false, error: 'This name is already taken' };
     }
 
     // First player to join an empty room becomes moderator
