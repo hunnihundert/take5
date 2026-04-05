@@ -129,6 +129,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         const sessionInfo = sessionManager.getSessionInfo(sid);
         if (!sessionInfo?.roomCode) {
             logger.info(`Session ${sid} disconnected with no room`);
+            sessionManager.destroySession(sid);
             return;
         }
 
