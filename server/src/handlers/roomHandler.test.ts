@@ -202,7 +202,7 @@ describe('Room Handler Integration', () => {
     await new Promise<void>((resolve) => client2b.once('connect', resolve));
 
     // 3. Both tabs emit leaveRoom (sockets.size > 1 so both return early,
-    //    but voluntary intent is recorded on the session)
+    //    but voluntary intent is recorded for each socket/tab)
     client2.emit('leaveRoom');
     client2b.emit('leaveRoom');
 
