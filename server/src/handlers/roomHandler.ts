@@ -116,6 +116,25 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
+    socket.on('leaveRoom', () => {
+        const sockets = sessionManager.getSocketIds(sessionId);
+        if (sockets.size > 1) return; // other tabs still open
+
+        const sessionInfo = sessionManager.getSessionInfo(sessionId);
+        if (!sessionInfo?.roomCode) return;
+
+        const roomCode = sessionInfo.roomCode;
+        const result = roomManager.removePlayer(roomCode, sessionId);
+        if (result.removed) {
+            io.to(roomCode).emit('playerLeft', {
+                playerId: sessionId,
+                newModeratorId: result.newModerator?.id,
+            });
+        }
+        sessionManager.destroySession(sessionId);
+        logger.info(`Session ${sessionId} left room ${roomCode} voluntarily`);
+    });
+
     socket.on('disconnect', () => {
         const { sessionId: sid, isLastSocket } = sessionManager.unregisterSocket(socket.id);
         if (!sid) return;

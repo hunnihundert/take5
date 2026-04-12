@@ -38,9 +38,15 @@ export const useSocket = () => {
       console.log('Session created:', newId);
     });
 
+    const handleBeforeUnload = () => {
+      socketInstance.emit('leaveRoom');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     setSocket(socketInstance);
 
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       socketInstance.close();
     };
   }, []);

@@ -51,6 +51,7 @@ export interface ClientToServerEvents {
   updateAvatar: (avatarUrl: string | null) => void;
   throwEmoji: (data: { toPlayerId: string; emoji: string }) => void;
   transferModerator: (data: { toPlayerId: string }) => void;
+  leaveRoom: () => void;
 
   // Story events
   addManualStory: (summary: string) => void;
