@@ -144,6 +144,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         }, sessionManager.voluntaryDisconnectGraceMs);
 
         logger.info(`Voluntary grace period started for session ${sessionId} in room ${roomCode}`);
+
+        // Stop the socket from receiving further room broadcasts and route
+        // cleanup through the normal disconnect handler path.
+        socket.leave(roomCode);
+        socket.disconnect(true);
     });
 
     socket.on('disconnect', () => {
