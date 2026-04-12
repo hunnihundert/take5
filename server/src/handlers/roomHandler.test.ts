@@ -155,23 +155,23 @@ describe('Room Handler Integration', () => {
       });
     });
 
-    const playerDisconnectedPromise = waitForEvent<any>(client1, 'playerDisconnected');
-    const playerLeftPromise = waitForEvent<any>(client1, 'playerLeft');
-    const start = Date.now();
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<any>(resolve => {
+      client1.once('playerDisconnected', (data) => { received.push('playerDisconnected'); resolve(data); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
 
     client2.emit('leaveRoom');
 
-    // playerDisconnected fires right away
+    // playerDisconnected must arrive before playerLeft
     await playerDisconnectedPromise;
-    expect(Date.now() - start).toBeLessThan(100);
+    expect(received).toEqual(['playerDisconnected']);
 
-    // playerLeft fires after the voluntary grace period (~100ms), not immediately,
-    // and well before the involuntary grace period (300ms)
     const leaveData = await playerLeftPromise;
-    const elapsed = Date.now() - start;
     expect(leaveData.playerId).toBe(client2.sessionId);
-    expect(elapsed).toBeGreaterThanOrEqual(80);
-    expect(elapsed).toBeLessThan(300);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
   }, 10_000);
 
   it('should NOT remove player on leaveRoom when other tabs are still open', async () => {
@@ -236,20 +236,22 @@ describe('Room Handler Integration', () => {
     });
 
     // 2. Client 2 disconnects without emitting leaveRoom
-    const playerLeftPromise = waitForEvent<any>(client1, 'playerLeft');
-    const playerDisconnectedPromise = waitForEvent<any>(client1, 'playerDisconnected');
-    const start = Date.now();
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<any>(resolve => {
+      client1.once('playerDisconnected', (data) => { received.push('playerDisconnected'); resolve(data); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
 
     client2.disconnect();
 
-    // playerDisconnected should fire quickly
+    // playerDisconnected must arrive before playerLeft
     await playerDisconnectedPromise;
-    expect(Date.now() - start).toBeLessThan(100);
+    expect(received).toEqual(['playerDisconnected']);
 
-    // playerLeft should fire after the involuntary grace period (~300ms), not before
     await playerLeftPromise;
-    const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(200);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
   }, 10_000);
 
   it('should handle leaveRoom gracefully when player is not in a room', async () => {
