@@ -37,7 +37,8 @@ A modern, real-time Planning Poker application for agile teams, built with React
 ### Session Management
 - **Persistent Sessions** - Players survive page reloads and reconnections; full state is restored automatically
 - **Multi-tab Support** - Opening the same room in multiple tabs shows the same player (not duplicates)
-- **60-second Grace Period** - Temporary disconnects don't remove the player; others won't see a "left/joined" flicker
+- **Short Grace Period on Tab Close** - Closing the tab voluntarily marks the player as disconnected and removes them after ~8 seconds, allowing page reloads to reconnect seamlessly
+- **60-second Grace Period** - Accidental disconnects (network drop, browser crash) don't remove the player; others won't see a "left/joined" flicker
 - **Name & Avatar Memory** - Player name and avatar are saved in localStorage and restored on return
 - **Pre-filled Home Form** - Returning users see their name pre-filled; room code is pre-filled from the URL
 
@@ -395,6 +396,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 - `updateAvatar(avatarUrl)` - Update avatar (Base64 or null)
 - `throwEmoji({ toPlayerId, emoji })` - Throw an emoji at a player
 - `transferModerator({ toPlayerId })` - Transfer moderator role to another player (moderator only)
+- `leaveRoom()` - Signal intentional tab close; starts an 8-second grace period (shorter than the involuntary 60s) so page reloads reconnect transparently
 
 **Story events (moderator only):**
 - `addManualStory(summary)` - Add a manual story
@@ -414,7 +416,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 - `sessionCreated({ sessionId })` - New session ID assigned (stored in localStorage)
 - `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected })` - Successfully joined (also sent on reconnect/new tab)
 - `playerJoined(player)` - A new player joined
-- `playerLeft({ playerId, newModeratorId? })` - A player left (after 60s grace period)
+- `playerLeft({ playerId, newModeratorId? })` - A player left (after 8s voluntary grace period or 60s involuntary grace period)
 - `playerDisconnected({ playerId })` - A player's connection dropped (grace period active)
 - `playerReconnected({ playerId })` - A disconnected player came back
 - `cardSelected({ playerId, hasVoted })` - A player selected a card

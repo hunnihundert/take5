@@ -11,16 +11,23 @@ export interface SessionInfo {
 }
 
 export const DEFAULT_DISCONNECT_GRACE_MS = 60_000;
+export const DEFAULT_VOLUNTARY_DISCONNECT_GRACE_MS = 8_000;
 
 export class SessionManager {
   private sessions = new Map<string, SessionInfo>();
   private sessionToSockets = new Map<string, Set<string>>();
   private socketToSession = new Map<string, string>();
   private disconnectTimers = new Map<string, NodeJS.Timeout>();
+  private voluntaryLeaveSockets = new Set<string>();
   readonly disconnectGraceMs: number;
+  readonly voluntaryDisconnectGraceMs: number;
 
-  constructor(disconnectGraceMs: number = DEFAULT_DISCONNECT_GRACE_MS) {
+  constructor(
+    disconnectGraceMs: number = DEFAULT_DISCONNECT_GRACE_MS,
+    voluntaryDisconnectGraceMs: number = DEFAULT_VOLUNTARY_DISCONNECT_GRACE_MS
+  ) {
     this.disconnectGraceMs = disconnectGraceMs;
+    this.voluntaryDisconnectGraceMs = voluntaryDisconnectGraceMs;
   }
 
   generateSessionId(): string {
@@ -70,10 +77,13 @@ export class SessionManager {
     logger.info(`Socket ${socketId} registered to session ${sessionId} (${sockets.size} socket(s))`);
   }
 
-  unregisterSocket(socketId: string): { sessionId: string | undefined; isLastSocket: boolean } {
+  unregisterSocket(socketId: string): { sessionId: string | undefined; isLastSocket: boolean; wasVoluntary: boolean } {
+    const wasVoluntary = this.voluntaryLeaveSockets.has(socketId);
+    this.voluntaryLeaveSockets.delete(socketId);
+
     const sessionId = this.socketToSession.get(socketId);
     if (!sessionId) {
-      return { sessionId: undefined, isLastSocket: false };
+      return { sessionId: undefined, isLastSocket: false, wasVoluntary };
     }
 
     this.socketToSession.delete(socketId);
@@ -82,10 +92,10 @@ export class SessionManager {
       sockets.delete(socketId);
       const isLastSocket = sockets.size === 0;
       logger.info(`Socket ${socketId} unregistered from session ${sessionId} (${sockets.size} socket(s) remaining)`);
-      return { sessionId, isLastSocket };
+      return { sessionId, isLastSocket, wasVoluntary };
     }
 
-    return { sessionId, isLastSocket: true };
+    return { sessionId, isLastSocket: true, wasVoluntary };
   }
 
   getSessionId(socketId: string): string | undefined {
@@ -151,5 +161,9 @@ export class SessionManager {
 
   hasActiveTimer(sessionId: string): boolean {
     return this.disconnectTimers.has(sessionId);
+  }
+
+  markSocketVoluntaryLeave(socketId: string): void {
+    this.voluntaryLeaveSockets.add(socketId);
   }
 }

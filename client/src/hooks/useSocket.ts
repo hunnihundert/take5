@@ -38,9 +38,25 @@ export const useSocket = () => {
       console.log('Session created:', newId);
     });
 
+    // Emit leaveRoom on page unload so the server starts the short voluntary
+    // grace period instead of the longer involuntary one.
+    // Both beforeunload and pagehide are listened to for broader browser
+    // coverage (pagehide is more reliable on iOS Safari). A flag prevents
+    // the event from being emitted twice for the same navigation.
+    let leaveEmitted = false;
+    const emitLeaveRoom = () => {
+      if (leaveEmitted) return;
+      leaveEmitted = true;
+      socketInstance.emit('leaveRoom');
+    };
+    window.addEventListener('beforeunload', emitLeaveRoom);
+    window.addEventListener('pagehide', emitLeaveRoom);
+
     setSocket(socketInstance);
 
     return () => {
+      window.removeEventListener('beforeunload', emitLeaveRoom);
+      window.removeEventListener('pagehide', emitLeaveRoom);
       socketInstance.close();
     };
   }, []);

@@ -6,8 +6,8 @@ describe('Room Handler Integration', () => {
   let testIndex = 0;
 
   beforeAll(async () => {
-    // Use a very short grace period for tests
-    server = await createTestServer({ disconnectGraceMs: 200 });
+    // Short grace periods for tests; voluntary (100ms) < involuntary (300ms) for clear distinction
+    server = await createTestServer({ disconnectGraceMs: 300, voluntaryDisconnectGraceMs: 100 });
   });
 
   afterAll(async () => {
@@ -137,6 +137,295 @@ describe('Room Handler Integration', () => {
     const result = await Promise.race([transferReceived, expectNoEvent(100)]);
     expect(result).toBe('timeout');
   });
+
+  it('should emit playerDisconnected immediately and playerLeft after voluntary grace period on leaveRoom', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2 joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<any>(resolve => {
+      client1.once('playerDisconnected', (data) => { received.push('playerDisconnected'); resolve(data); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    client2.emit('leaveRoom');
+
+    // playerDisconnected must arrive before playerLeft
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    const leaveData = await playerLeftPromise;
+    expect(leaveData.playerId).toBe(client2.sessionId);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
+
+  it('should use voluntary grace period when all tabs close (multi-tab window close)', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2a joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Open a second tab for the same session (simulates two tabs in one browser window)
+    const { io: ioc } = await import('socket.io-client');
+    const client2b = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+    await new Promise<void>((resolve) => client2b.once('connect', resolve));
+
+    // 3. Both tabs emit leaveRoom (sockets.size > 1 so both return early,
+    //    but voluntary intent is recorded for each socket/tab)
+    client2.emit('leaveRoom');
+    client2b.emit('leaveRoom');
+
+    // 4. Track event ordering on client1
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<void>(resolve => {
+      client1.once('playerDisconnected', () => { received.push('playerDisconnected'); resolve(); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    // 5. Both tabs disconnect — last one should trigger the voluntary (short) grace period
+    client2.disconnect();
+    client2b.disconnect();
+
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    const leaveData = await playerLeftPromise;
+    expect(leaveData.playerId).toBe(client2.sessionId);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
+
+  it('should NOT remove player on leaveRoom when other tabs are still open', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2a joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Simulate a second tab: connect with the same sessionId
+    const { io: ioc } = await import('socket.io-client');
+    const client2b = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+    await new Promise<void>((resolve) => client2b.once('connect', resolve));
+
+    // 3. Client 2a emits leaveRoom and disconnects — should NOT fire playerDisconnected or playerLeft
+    const unexpectedEvent = new Promise<'event'>((resolve) => {
+      client1.once('playerDisconnected', () => resolve('event'));
+      client1.once('playerLeft', () => resolve('event'));
+    });
+    // Wait longer than voluntaryDisconnectGraceMs (100ms) to be sure neither fires
+    const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250));
+
+    client2.emit('leaveRoom');
+    client2.disconnect();
+
+    const result = await Promise.race([unexpectedEvent, timeout]);
+    expect(result).toBe('timeout');
+
+    client2b.disconnect();
+  });
+
+  it('should still use grace period for involuntary disconnect (no leaveRoom)', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2 joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Client 2 disconnects without emitting leaveRoom
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<any>(resolve => {
+      client1.once('playerDisconnected', (data) => { received.push('playerDisconnected'); resolve(data); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    client2.disconnect();
+
+    // playerDisconnected must arrive before playerLeft
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    await playerLeftPromise;
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
+
+  it('should handle leaveRoom gracefully when player is not in a room', async () => {
+    // Client 1 connects but never joins a room — emitting leaveRoom should not crash
+    await expect(
+      new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(resolve, 100);
+        client1.once('error', (err: any) => {
+          clearTimeout(timeout);
+          reject(new Error(`Unexpected error: ${err}`));
+        });
+        client1.emit('leaveRoom');
+      })
+    ).resolves.toBeUndefined();
+  });
+
+  it('should restore player if they reconnect within the voluntary grace period (reload case)', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2 joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Client 2 emits leaveRoom — playerDisconnected fires, short timer starts
+    const playerDisconnectedPromise = waitForEvent<any>(client1, 'playerDisconnected');
+    client2.emit('leaveRoom');
+    await playerDisconnectedPromise;
+
+    // 3. Before the voluntary grace period expires, reconnect with the same sessionId
+    //    (simulates a page reload — browser closes the old socket, opens a new one)
+    const { io: ioc } = await import('socket.io-client');
+    const client2Reload = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+
+    const [playerReconnectedData] = await Promise.all([
+      waitForEvent<any>(client1, 'playerReconnected'),
+      new Promise<void>((resolve) => client2Reload.once('connect', resolve)),
+    ]);
+
+    expect(playerReconnectedData.playerId).toBe(client2.sessionId);
+
+    // 4. playerLeft must NOT fire — the timer was cancelled on reconnect
+    const playerLeftFired = new Promise<'event'>((resolve) => {
+      client1.once('playerLeft', () => resolve('event'));
+    });
+    const neverFired = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250));
+    expect(await Promise.race([playerLeftFired, neverFired])).toBe('timeout');
+
+    client2Reload.disconnect();
+  }, 10_000);
+
+  it('should use involuntary grace period when only one of two tabs emitted leaveRoom and the other disconnects', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2a joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Open a second tab for the same session
+    const { io: ioc } = await import('socket.io-client');
+    const client2b = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+    await new Promise<void>((resolve) => client2b.once('connect', resolve));
+
+    // 3. Only Tab A emits leaveRoom (intent is per-socket, not session-wide)
+    client2.emit('leaveRoom');
+    // Small pause to ensure leaveRoom is processed before disconnect
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    // 4. Tab A disconnects (leaveRoom already processed, socket flagged voluntary)
+    client2.disconnect();
+    // Small pause to let Tab A's disconnect be processed
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    // 5. Tab B (client2b) disconnects WITHOUT emitting leaveRoom — should use INVOLUNTARY grace period
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<void>(resolve => {
+      client1.once('playerDisconnected', () => { received.push('playerDisconnected'); resolve(); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    client2b.disconnect();
+
+    // Both events should arrive (involuntary grace period = 300ms in tests)
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    const leaveData = await playerLeftPromise;
+    expect(leaveData.playerId).toBe(client2.sessionId);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
 
   it('should promote a new moderator when the original leaves', async () => {
     const roomCode = `ROOM${testIndex}`;

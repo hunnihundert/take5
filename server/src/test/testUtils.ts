@@ -4,7 +4,7 @@ import { ServerToClientEvents, ClientToServerEvents } from '../types';
 import { AddressInfo } from 'net';
 import { SessionManager } from '../sessionManager';
 
-export async function createTestServer(options?: { disconnectGraceMs?: number }) {
+export async function createTestServer(options?: { disconnectGraceMs?: number; voluntaryDisconnectGraceMs?: number }) {
   const { httpServer, io, roomManager, sessionManager } = await createServerApp(options);
 
   return new Promise<{

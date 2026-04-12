@@ -14,7 +14,7 @@ import { initDatabase, isDatabaseEnabled, syncSchema } from './db';
 import { RoomRepository } from './db/repository';
 import { logger } from './utils/logger';
 
-export async function createServerApp(options?: { disconnectGraceMs?: number }) {
+export async function createServerApp(options?: { disconnectGraceMs?: number; voluntaryDisconnectGraceMs?: number }) {
   const app = express();
   const httpServer = createServer(app);
 
@@ -61,7 +61,7 @@ export async function createServerApp(options?: { disconnectGraceMs?: number }) 
 
   // Create room manager with optional repository
   const roomManager = new RoomManager(repository);
-  const sessionManager = new SessionManager(options?.disconnectGraceMs);
+  const sessionManager = new SessionManager(options?.disconnectGraceMs, options?.voluntaryDisconnectGraceMs);
 
   // Session middleware: assign or validate session ID before connection handler
   io.use((socket, next) => {

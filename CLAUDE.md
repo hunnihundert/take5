@@ -50,7 +50,7 @@ npm run db:migrate --workspace=server   # Run migrations
 
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`
+**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`, `leaveRoom`
 
 **Client -> Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
 
@@ -125,7 +125,8 @@ Socket.io handles all game state synchronization. Key event patterns:
 - **Consensus:** Confetti animation triggers when all players select the same card
 - **Name uniqueness:** Duplicate player names are rejected per room
 - **Session identity:** `Player.id` is a server-generated UUID session ID (not socket.id); stored in client `localStorage` as `take5_sessionId`
-- **Grace period:** On disconnect, player removal is delayed 60 seconds; reconnecting within that window restores full state seamlessly
+- **Voluntary disconnect:** Client emits `leaveRoom` on `beforeunload`; server starts an 8-second grace period (`voluntaryDisconnectGraceMs`). Since `beforeunload` also fires on page reload, the short timer lets reloads reconnect before expiry while still removing the player promptly on a true tab close. The subsequent `disconnect` event skips the 60s involuntary timer when a voluntary timer is already running.
+- **Grace period:** On involuntary disconnect (network drop, crash), player removal is delayed 60 seconds; reconnecting within that window restores full state seamlessly
 - **Multi-tab:** Multiple tabs with the same session ID are treated as one player; each receives full state via `roomJoined`
 - **Avatar/name persistence:** Stored in `localStorage` (`take5_avatarUrl`, `take5_playerName`); avatar auto-sent after joining, name pre-fills Home form
 - **Jira Integration:** Stories can be imported via URL or JQL; story points sync back to Jira

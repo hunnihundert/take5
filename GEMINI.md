@@ -66,7 +66,19 @@ If `DATABASE_URL` is provided in `.env`, the server uses PostgreSQL. Otherwise, 
 - **Server → Client**: State updates (e.g., `playerJoined`, `cardsRevealed`).
 - Refer to `CLAUDE.md` or `server/src/types.ts` for the full list of events.
 
+### Session Management
+- **Session Identity (`Player.id`)**: Represents a server-generated UUID stored in client `localStorage` (as `take5_sessionId`), not the transient `socket.id`.
+- **Voluntary Disconnect**: The client emits a `leaveRoom` event on `beforeunload`. The server starts a short 8-second grace period (instead of immediately removing or using the full 60s). This allows page reloads to reconnect seamlessly — the browser fires `beforeunload` on reload too, so the shorter timer ensures the player is restored if they reconnect quickly, while still removing them promptly on a true tab close.
+- **Grace Period**: The `SessionManager` implements a 60-second disconnect timeout for involuntary disconnects (network drop, crash). Reconnecting within this window flawlessly restores state and avoids "player left/joined" unneeded broadcasts to others.
+- **Multi-Tab Support**: Multiple tabs sharing the same `sessionId` sync seamlessly and represent the same physical user. Closing one tab does not remove the player as long as other tabs remain open.
+- **Persistent Preferences**: Player names and avatars (`take5_playerName`, `take5_avatarUrl`) are stored locally and automatically prefilled.
+
 ### Key Logic
-- **Moderator**: The first player to create/join an empty room is the moderator.
-- **Auto-reveal**: Cards reveal automatically when all non-observers have voted.
-- **Jira**: Issue keys and URLs are parsed from input or JQL queries. Story points can be synced back if configured.
+- **Moderator**: The first player to create/join a room is given moderator rights. The role is automatically shifted to someone else if they fully leave. Alternatively, a moderator can explicitly transfer power via right-click menu.
+- **Voting & Auto-Reveal**: Selected cards remain hidden. The deck auto-reveals when all active (non-observing) players have voted. Observers do not vote and bypass this criteria.
+- **Consensus & Celebration**: If all participants pick the identical card, a confetti animation executes. Embellishments like throwing emojis to a specific player are supported in real-time via right-click.
+- **Jira**: Users can configure basic auth (`apiToken`) to connect their Jira accounts. Issue keys and URLs are parsed for importing via direct links or JQL. Story points can be synchronized back to Jira once estimated.
+
+### Deployment & Environment
+- **Docker**: Equipped with a multi-stage `Dockerfile` (Node 20 Alpine) to compile workspaces and launch the robust static server. 
+- **Keep-alive**: The frontend utilizes a repetitive 10-minute heartbeat polling `/api/health` to deter free-tier PaaS (like Render.com) from suspending during gameplay.

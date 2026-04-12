@@ -116,8 +116,50 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
+    socket.on('leaveRoom', () => {
+        const sessionInfo = sessionManager.getSessionInfo(sessionId);
+        if (!sessionInfo?.roomCode) return;
+
+        // Mark this specific socket as voluntarily leaving. unregisterSocket()
+        // returns wasVoluntary and clears the flag, so the disconnect handler
+        // for this socket picks the short grace period. Other sockets for the
+        // same session are unaffected — their wasVoluntary is false unless they
+        // also emitted leaveRoom.
+        sessionManager.markSocketVoluntaryLeave(socket.id);
+
+        const sockets = sessionManager.getSocketIds(sessionId);
+        if (sockets.size > 1) return; // other tabs still open — last disconnect handles it
+
+        const roomCode = sessionInfo.roomCode;
+
+        // Notify others the player is temporarily gone (may come back on reload)
+        socket.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
+
+        // Start a short grace period — enough time for a page reload to reconnect.
+        // If the player reconnects within this window, the timer is cancelled and
+        // they are fully restored. If not, they are removed as if they had left.
+        sessionManager.startDisconnectTimer(sessionId, () => {
+            const result = roomManager.removePlayer(roomCode, sessionId);
+            if (result.removed) {
+                io.to(roomCode).emit('playerLeft', {
+                    playerId: sessionId,
+                    newModeratorId: result.newModerator?.id,
+                });
+            }
+            sessionManager.destroySession(sessionId);
+            logger.info(`Session ${sessionId} removed from room ${roomCode} after voluntary grace period`);
+        }, sessionManager.voluntaryDisconnectGraceMs);
+
+        logger.info(`Voluntary grace period started for session ${sessionId} in room ${roomCode}`);
+
+        // Stop the socket from receiving further room broadcasts and route
+        // cleanup through the normal disconnect handler path.
+        socket.leave(roomCode);
+        socket.disconnect(true);
+    });
+
     socket.on('disconnect', () => {
-        const { sessionId: sid, isLastSocket } = sessionManager.unregisterSocket(socket.id);
+        const { sessionId: sid, isLastSocket, wasVoluntary } = sessionManager.unregisterSocket(socket.id);
         if (!sid) return;
 
         // If other tabs are still connected, do nothing
@@ -135,12 +177,21 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
         const roomCode = sessionInfo.roomCode;
 
-        // Notify others the player is temporarily disconnected
+        // If leaveRoom already started a voluntary grace period, don't override it
+        // with the longer involuntary grace period
+        if (sessionManager.hasActiveTimer(sid)) {
+            logger.info(`Socket ${socket.id} disconnected for session ${sid} — voluntary grace period already running`);
+            return;
+        }
+
+        // Choose grace period based on whether this socket requested leaveRoom
+        const graceMs = wasVoluntary
+            ? sessionManager.voluntaryDisconnectGraceMs
+            : sessionManager.disconnectGraceMs;
+
         io.to(roomCode).emit('playerDisconnected', { playerId: sid });
 
-        // Start grace period
         sessionManager.startDisconnectTimer(sid, () => {
-            // Timer expired — remove the player for real
             const result = roomManager.removePlayer(roomCode, sid);
             if (result.removed) {
                 io.to(roomCode).emit('playerLeft', {
@@ -149,9 +200,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 });
             }
             sessionManager.destroySession(sid);
-            logger.info(`Session ${sid} removed from room ${roomCode} after grace period`);
-        }, sessionManager.disconnectGraceMs);
+            logger.info(`Session ${sid} removed from room ${roomCode} after ${wasVoluntary ? 'voluntary' : 'involuntary'} grace period`);
+        }, graceMs);
 
-        logger.info(`Grace period started for session ${sid} in room ${roomCode}`);
+        logger.info(`${wasVoluntary ? 'Voluntary' : 'Involuntary'} grace period started for session ${sid} in room ${roomCode}`);
     });
 };
