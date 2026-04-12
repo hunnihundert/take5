@@ -174,6 +174,59 @@ describe('Room Handler Integration', () => {
     expect(received).toEqual(['playerDisconnected', 'playerLeft']);
   }, 10_000);
 
+  it('should use voluntary grace period when all tabs close (multi-tab window close)', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2a joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Open a second tab for the same session (simulates two tabs in one browser window)
+    const { io: ioc } = await import('socket.io-client');
+    const client2b = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+    await new Promise<void>((resolve) => client2b.once('connect', resolve));
+
+    // 3. Both tabs emit leaveRoom (sockets.size > 1 so both return early,
+    //    but voluntary intent is recorded on the session)
+    client2.emit('leaveRoom');
+    client2b.emit('leaveRoom');
+
+    // 4. Track event ordering on client1
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<void>(resolve => {
+      client1.once('playerDisconnected', () => { received.push('playerDisconnected'); resolve(); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    // 5. Both tabs disconnect — last one should trigger the voluntary (short) grace period
+    client2.disconnect();
+    client2b.disconnect();
+
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    const leaveData = await playerLeftPromise;
+    expect(leaveData.playerId).toBe(client2.sessionId);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
+
   it('should NOT remove player on leaveRoom when other tabs are still open', async () => {
     const roomCode = `ROOM${testIndex}`;
 

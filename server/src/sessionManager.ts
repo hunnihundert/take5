@@ -8,6 +8,7 @@ export interface SessionInfo {
   avatarUrl: string | null;
   isModerator: boolean;
   isObserver: boolean;
+  voluntaryLeave: boolean;
 }
 
 export const DEFAULT_DISCONNECT_GRACE_MS = 60_000;
@@ -42,6 +43,7 @@ export class SessionManager {
         avatarUrl: null,
         isModerator: false,
         isObserver: false,
+        voluntaryLeave: false,
       });
       this.sessionToSockets.set(sessionId, new Set());
       logger.info(`Session created: ${sessionId}`);
@@ -157,5 +159,15 @@ export class SessionManager {
 
   hasActiveTimer(sessionId: string): boolean {
     return this.disconnectTimers.has(sessionId);
+  }
+
+  markVoluntaryLeave(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) session.voluntaryLeave = true;
+  }
+
+  clearVoluntaryLeave(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) session.voluntaryLeave = false;
   }
 }
