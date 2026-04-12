@@ -6,8 +6,8 @@ describe('Room Handler Integration', () => {
   let testIndex = 0;
 
   beforeAll(async () => {
-    // Use a very short grace period for tests
-    server = await createTestServer({ disconnectGraceMs: 200 });
+    // Short grace periods for tests; voluntary (100ms) < involuntary (300ms) for clear distinction
+    server = await createTestServer({ disconnectGraceMs: 300, voluntaryDisconnectGraceMs: 100 });
   });
 
   afterAll(async () => {
@@ -138,7 +138,7 @@ describe('Room Handler Integration', () => {
     expect(result).toBe('timeout');
   });
 
-  it('should remove player immediately when leaveRoom is emitted before disconnect', async () => {
+  it('should emit playerDisconnected immediately and playerLeft after voluntary grace period on leaveRoom', async () => {
     const roomCode = `ROOM${testIndex}`;
 
     // 1. Client 1 creates room, Client 2 joins
@@ -155,21 +155,24 @@ describe('Room Handler Integration', () => {
       });
     });
 
-    // 2. Client 2 emits leaveRoom — should fire playerLeft immediately (no grace period)
-    // Note: we do NOT call disconnect() here. Calling disconnect() right after emit()
-    // can race on the server (disconnect event arrives before leaveRoom is processed).
-    // The real beforeunload scenario sends the event and lets the browser close naturally.
+    const playerDisconnectedPromise = waitForEvent<any>(client1, 'playerDisconnected');
     const playerLeftPromise = waitForEvent<any>(client1, 'playerLeft');
     const start = Date.now();
 
     client2.emit('leaveRoom');
 
+    // playerDisconnected fires right away
+    await playerDisconnectedPromise;
+    expect(Date.now() - start).toBeLessThan(100);
+
+    // playerLeft fires after the voluntary grace period (~100ms), not immediately,
+    // and well before the involuntary grace period (300ms)
     const leaveData = await playerLeftPromise;
     const elapsed = Date.now() - start;
-
     expect(leaveData.playerId).toBe(client2.sessionId);
-    expect(elapsed).toBeLessThan(100); // well under the 200ms grace period
-  });
+    expect(elapsed).toBeGreaterThanOrEqual(80);
+    expect(elapsed).toBeLessThan(300);
+  }, 10_000);
 
   it('should NOT remove player on leaveRoom when other tabs are still open', async () => {
     const roomCode = `ROOM${testIndex}`;
@@ -198,16 +201,18 @@ describe('Room Handler Integration', () => {
     });
     await new Promise<void>((resolve) => client2b.once('connect', resolve));
 
-    // 3. Client 2a emits leaveRoom and disconnects — should NOT fire playerLeft
-    const playerLeftFired = new Promise<'event'>((resolve) => {
+    // 3. Client 2a emits leaveRoom and disconnects — should NOT fire playerDisconnected or playerLeft
+    const unexpectedEvent = new Promise<'event'>((resolve) => {
+      client1.once('playerDisconnected', () => resolve('event'));
       client1.once('playerLeft', () => resolve('event'));
     });
-    const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 100));
+    // Wait longer than voluntaryDisconnectGraceMs (100ms) to be sure neither fires
+    const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250));
 
     client2.emit('leaveRoom');
     client2.disconnect();
 
-    const result = await Promise.race([playerLeftFired, timeout]);
+    const result = await Promise.race([unexpectedEvent, timeout]);
     expect(result).toBe('timeout');
 
     client2b.disconnect();
@@ -241,10 +246,10 @@ describe('Room Handler Integration', () => {
     await playerDisconnectedPromise;
     expect(Date.now() - start).toBeLessThan(100);
 
-    // playerLeft should fire after grace period (~200ms), not before
+    // playerLeft should fire after the involuntary grace period (~300ms), not before
     await playerLeftPromise;
     const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(150);
+    expect(elapsed).toBeGreaterThanOrEqual(200);
   }, 10_000);
 
   it('should handle leaveRoom gracefully when player is not in a room', async () => {
@@ -260,6 +265,55 @@ describe('Room Handler Integration', () => {
       })
     ).resolves.toBeUndefined();
   });
+
+  it('should restore player if they reconnect within the voluntary grace period (reload case)', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2 joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Client 2 emits leaveRoom — playerDisconnected fires, short timer starts
+    const playerDisconnectedPromise = waitForEvent<any>(client1, 'playerDisconnected');
+    client2.emit('leaveRoom');
+    await playerDisconnectedPromise;
+
+    // 3. Before the voluntary grace period expires, reconnect with the same sessionId
+    //    (simulates a page reload — browser closes the old socket, opens a new one)
+    const { io: ioc } = await import('socket.io-client');
+    const client2Reload = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+
+    const [playerReconnectedData] = await Promise.all([
+      waitForEvent<any>(client1, 'playerReconnected'),
+      new Promise<void>((resolve) => client2Reload.once('connect', resolve)),
+    ]);
+
+    expect(playerReconnectedData.playerId).toBe(client2.sessionId);
+
+    // 4. playerLeft must NOT fire — the timer was cancelled on reconnect
+    const playerLeftFired = new Promise<'event'>((resolve) => {
+      client1.once('playerLeft', () => resolve('event'));
+    });
+    const neverFired = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250));
+    expect(await Promise.race([playerLeftFired, neverFired])).toBe('timeout');
+
+    client2Reload.disconnect();
+  }, 10_000);
 
   it('should promote a new moderator when the original leaves', async () => {
     const roomCode = `ROOM${testIndex}`;

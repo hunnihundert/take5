@@ -11,6 +11,7 @@ export interface SessionInfo {
 }
 
 export const DEFAULT_DISCONNECT_GRACE_MS = 60_000;
+export const DEFAULT_VOLUNTARY_DISCONNECT_GRACE_MS = 8_000;
 
 export class SessionManager {
   private sessions = new Map<string, SessionInfo>();
@@ -18,9 +19,14 @@ export class SessionManager {
   private socketToSession = new Map<string, string>();
   private disconnectTimers = new Map<string, NodeJS.Timeout>();
   readonly disconnectGraceMs: number;
+  readonly voluntaryDisconnectGraceMs: number;
 
-  constructor(disconnectGraceMs: number = DEFAULT_DISCONNECT_GRACE_MS) {
+  constructor(
+    disconnectGraceMs: number = DEFAULT_DISCONNECT_GRACE_MS,
+    voluntaryDisconnectGraceMs: number = DEFAULT_VOLUNTARY_DISCONNECT_GRACE_MS
+  ) {
     this.disconnectGraceMs = disconnectGraceMs;
+    this.voluntaryDisconnectGraceMs = voluntaryDisconnectGraceMs;
   }
 
   generateSessionId(): string {

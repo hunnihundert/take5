@@ -124,15 +124,26 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         if (!sessionInfo?.roomCode) return;
 
         const roomCode = sessionInfo.roomCode;
-        const result = roomManager.removePlayer(roomCode, sessionId);
-        if (result.removed) {
-            io.to(roomCode).emit('playerLeft', {
-                playerId: sessionId,
-                newModeratorId: result.newModerator?.id,
-            });
-        }
-        sessionManager.destroySession(sessionId);
-        logger.info(`Session ${sessionId} left room ${roomCode} voluntarily`);
+
+        // Notify others the player is temporarily gone (may come back on reload)
+        io.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
+
+        // Start a short grace period — enough time for a page reload to reconnect.
+        // If the player reconnects within this window, the timer is cancelled and
+        // they are fully restored. If not, they are removed as if they had left.
+        sessionManager.startDisconnectTimer(sessionId, () => {
+            const result = roomManager.removePlayer(roomCode, sessionId);
+            if (result.removed) {
+                io.to(roomCode).emit('playerLeft', {
+                    playerId: sessionId,
+                    newModeratorId: result.newModerator?.id,
+                });
+            }
+            sessionManager.destroySession(sessionId);
+            logger.info(`Session ${sessionId} removed from room ${roomCode} after voluntary grace period`);
+        }, sessionManager.voluntaryDisconnectGraceMs);
+
+        logger.info(`Voluntary grace period started for session ${sessionId} in room ${roomCode}`);
     });
 
     socket.on('disconnect', () => {
@@ -154,10 +165,16 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
         const roomCode = sessionInfo.roomCode;
 
-        // Notify others the player is temporarily disconnected
+        // If leaveRoom already started a voluntary grace period, don't override it
+        // with the longer involuntary grace period
+        if (sessionManager.hasActiveTimer(sid)) {
+            logger.info(`Socket ${socket.id} disconnected for session ${sid} — voluntary grace period already running`);
+            return;
+        }
+
+        // Involuntary disconnect — notify others and start normal grace period
         io.to(roomCode).emit('playerDisconnected', { playerId: sid });
 
-        // Start grace period
         sessionManager.startDisconnectTimer(sid, () => {
             // Timer expired — remove the player for real
             const result = roomManager.removePlayer(roomCode, sid);
