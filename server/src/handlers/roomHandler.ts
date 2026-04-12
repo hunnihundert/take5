@@ -126,7 +126,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         const roomCode = sessionInfo.roomCode;
 
         // Notify others the player is temporarily gone (may come back on reload)
-        io.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
+        socket.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
 
         // Start a short grace period — enough time for a page reload to reconnect.
         // If the player reconnects within this window, the timer is cancelled and
