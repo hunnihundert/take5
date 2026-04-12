@@ -68,8 +68,9 @@ If `DATABASE_URL` is provided in `.env`, the server uses PostgreSQL. Otherwise, 
 
 ### Session Management
 - **Session Identity (`Player.id`)**: Represents a server-generated UUID stored in client `localStorage` (as `take5_sessionId`), not the transient `socket.id`.
-- **Grace Period**: The `SessionManager` implements a 60-second disconnect timeout. Reconnecting within this window flawlessly restores state and avoids "player left/joined" unneeded broadcasts to others.
-- **Multi-Tab Support**: Multiple tabs sharing the same `sessionId` sync seamlessly and represent the same physical user.
+- **Voluntary Disconnect**: The client emits a `leaveRoom` event on `beforeunload`. The server removes the player immediately if no other tabs for that session are open (bypasses the grace period).
+- **Grace Period**: The `SessionManager` implements a 60-second disconnect timeout for involuntary disconnects (network drop, crash). Reconnecting within this window flawlessly restores state and avoids "player left/joined" unneeded broadcasts to others.
+- **Multi-Tab Support**: Multiple tabs sharing the same `sessionId` sync seamlessly and represent the same physical user. Closing one tab does not remove the player as long as other tabs remain open.
 - **Persistent Preferences**: Player names and avatars (`take5_playerName`, `take5_avatarUrl`) are stored locally and automatically prefilled.
 
 ### Key Logic
