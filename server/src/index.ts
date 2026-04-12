@@ -112,10 +112,8 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
         });
 
         if (wasDisconnected) {
-          // Notify others the player is back and reset voluntary leave intent
-          // so a future involuntary disconnect uses the full grace period
+          // Notify others the player is back
           socket.to(sessionInfo.roomCode).emit('playerReconnected', { playerId: sessionId });
-          sessionManager.clearVoluntaryLeave(sessionId);
           logger.info(`Session ${sessionId} reconnected to room ${sessionInfo.roomCode}`);
         }
       } else {

@@ -120,10 +120,12 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         const sessionInfo = sessionManager.getSessionInfo(sessionId);
         if (!sessionInfo?.roomCode) return;
 
-        // Record voluntary intent before checking tab count. If other tabs are
-        // still open, the disconnect handler for the last socket will read this
-        // flag and start the short voluntary grace period instead of the long one.
-        sessionManager.markVoluntaryLeave(sessionId);
+        // Mark this specific socket as voluntarily leaving. unregisterSocket()
+        // returns wasVoluntary and clears the flag, so the disconnect handler
+        // for this socket picks the short grace period. Other sockets for the
+        // same session are unaffected — their wasVoluntary is false unless they
+        // also emitted leaveRoom.
+        sessionManager.markSocketVoluntaryLeave(socket.id);
 
         const sockets = sessionManager.getSocketIds(sessionId);
         if (sockets.size > 1) return; // other tabs still open — last disconnect handles it
@@ -157,7 +159,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('disconnect', () => {
-        const { sessionId: sid, isLastSocket } = sessionManager.unregisterSocket(socket.id);
+        const { sessionId: sid, isLastSocket, wasVoluntary } = sessionManager.unregisterSocket(socket.id);
         if (!sid) return;
 
         // If other tabs are still connected, do nothing
@@ -182,9 +184,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             return;
         }
 
-        // Choose grace period: voluntary (all tabs closed intentionally) vs involuntary
-        const isVoluntary = sessionInfo.voluntaryLeave;
-        const graceMs = isVoluntary
+        // Choose grace period based on whether this socket requested leaveRoom
+        const graceMs = wasVoluntary
             ? sessionManager.voluntaryDisconnectGraceMs
             : sessionManager.disconnectGraceMs;
 
@@ -199,9 +200,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 });
             }
             sessionManager.destroySession(sid);
-            logger.info(`Session ${sid} removed from room ${roomCode} after ${isVoluntary ? 'voluntary' : 'involuntary'} grace period`);
+            logger.info(`Session ${sid} removed from room ${roomCode} after ${wasVoluntary ? 'voluntary' : 'involuntary'} grace period`);
         }, graceMs);
 
-        logger.info(`${isVoluntary ? 'Voluntary' : 'Involuntary'} grace period started for session ${sid} in room ${roomCode}`);
+        logger.info(`${wasVoluntary ? 'Voluntary' : 'Involuntary'} grace period started for session ${sid} in room ${roomCode}`);
     });
 };

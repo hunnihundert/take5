@@ -370,6 +370,63 @@ describe('Room Handler Integration', () => {
     client2Reload.disconnect();
   }, 10_000);
 
+  it('should use involuntary grace period when only one of two tabs emitted leaveRoom and the other disconnects', async () => {
+    const roomCode = `ROOM${testIndex}`;
+
+    // 1. Client 1 creates room, Client 2a joins
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve) => {
+      client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 2. Open a second tab for the same session
+    const { io: ioc } = await import('socket.io-client');
+    const client2b = ioc(`http://localhost:${server.port}`, {
+      reconnectionDelay: 0,
+      forceNew: true,
+      transports: ['websocket'],
+      auth: { sessionId: client2.sessionId },
+    });
+    await new Promise<void>((resolve) => client2b.once('connect', resolve));
+
+    // 3. Only Tab A emits leaveRoom (intent is per-socket, not session-wide)
+    client2.emit('leaveRoom');
+    // Small pause to ensure leaveRoom is processed before disconnect
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    // 4. Tab A disconnects (leaveRoom already processed, socket flagged voluntary)
+    client2.disconnect();
+    // Small pause to let Tab A's disconnect be processed
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    // 5. Tab B (client2b) disconnects WITHOUT emitting leaveRoom — should use INVOLUNTARY grace period
+    const received: string[] = [];
+    const playerDisconnectedPromise = new Promise<void>(resolve => {
+      client1.once('playerDisconnected', () => { received.push('playerDisconnected'); resolve(); });
+    });
+    const playerLeftPromise = new Promise<any>(resolve => {
+      client1.once('playerLeft', (data) => { received.push('playerLeft'); resolve(data); });
+    });
+
+    client2b.disconnect();
+
+    // Both events should arrive (involuntary grace period = 300ms in tests)
+    await playerDisconnectedPromise;
+    expect(received).toEqual(['playerDisconnected']);
+
+    const leaveData = await playerLeftPromise;
+    expect(leaveData.playerId).toBe(client2.sessionId);
+    expect(received).toEqual(['playerDisconnected', 'playerLeft']);
+  }, 10_000);
+
   it('should promote a new moderator when the original leaves', async () => {
     const roomCode = `ROOM${testIndex}`;
 
