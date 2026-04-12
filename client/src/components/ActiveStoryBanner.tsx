@@ -19,7 +19,7 @@ const ActiveStoryBanner = ({ story }: ActiveStoryBannerProps) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-medium text-white/80 uppercase tracking-wide">
-              Aktuelle Story
+              Current Story
             </span>
             {story.key && (
               <span className="text-xs font-mono bg-white/20 px-2 py-0.5 rounded">
@@ -28,11 +28,11 @@ const ActiveStoryBanner = ({ story }: ActiveStoryBannerProps) => {
             )}
             {story.isManual && (
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
-                Manuell
+                Manual
               </span>
             )}
           </div>
-          <div className="font-medium" title={story.summary}>
+          <div className="font-medium [&_a]:text-white [&_a]:underline [&_a:hover]:text-white/80 [&_a:visited]:text-white/70" title={story.summary}>
             {renderSummaryWithLinks(story.summary)}
           </div>
         </div>
