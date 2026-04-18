@@ -356,13 +356,13 @@ export class RoomManager {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
-    if (room.stories.length >= CAPS.maxStoriesPerRoom) {
-      throw new Error(`Story limit reached (max ${CAPS.maxStoriesPerRoom}).`);
+    // Check for duplicates before the cap so a duplicate is always a no-op
+    if (jiraStory.key && room.stories.some(s => s.key === jiraStory.key)) {
+      return null;
     }
 
-    // Check for duplicates by key
-    if (jiraStory.key && room.stories.some(s => s.key === jiraStory.key)) {
-      return null; // Duplicate
+    if (room.stories.length >= CAPS.maxStoriesPerRoom) {
+      throw new Error(`Story limit reached (max ${CAPS.maxStoriesPerRoom}).`);
     }
 
     const story: Story = {

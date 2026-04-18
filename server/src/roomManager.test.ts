@@ -460,6 +460,24 @@ describe('RoomManager', () => {
                 roomManager.addJiraStory(rc, { summary: 'Jira story', key: 'JIRA-1', url: 'https://example.com' })
             ).rejects.toThrow(/limit/i);
         });
+
+        it('should return null for a duplicate Jira key even when the story cap is reached', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            const rc = result.data.room.code;
+
+            // Add the story that will be the duplicate
+            await roomManager.addJiraStory(rc, { summary: 'Existing', key: 'JIRA-DUP', url: 'https://example.com' });
+
+            // Fill the rest of the cap
+            for (let i = 1; i < CAPS.maxStoriesPerRoom; i++) {
+                await roomManager.addManualStory(rc, `Story ${i}`);
+            }
+
+            // At cap — duplicate key should return null, not throw
+            const dupe = await roomManager.addJiraStory(rc, { summary: 'Existing', key: 'JIRA-DUP', url: 'https://example.com' });
+            expect(dupe).toBeNull();
+        });
     });
 
     describe('transferModerator', () => {
