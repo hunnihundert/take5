@@ -500,20 +500,17 @@ describe('Room Handler Integration', () => {
       expect(response.error).toMatch(/room code/i);
     });
 
-    it('should silently ignore updateAvatar with an oversized URL', async () => {
+    it('should emit error when updateAvatar URL exceeds max length', async () => {
       const roomCode = `VROOM${testIndex}`;
       await new Promise<void>((resolve) => {
         client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
       });
 
       const longUrl = 'https://example.com/' + 'x'.repeat(490);
-      const noEvent = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 150));
-      const avatarUpdated = new Promise<'event'>((resolve) => {
-        client1.once('avatarUpdated', () => resolve('event'));
-      });
-
+      const errorPromise = waitForEvent<any>(client1, 'error');
       client1.emit('updateAvatar', longUrl);
-      expect(await Promise.race([avatarUpdated, noEvent])).toBe('timeout');
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/avatar url/i);
     });
   });
 });

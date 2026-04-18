@@ -120,7 +120,10 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     socket.on('updateAvatar', (avatarUrl: string | null) => {
         if (avatarUrl !== null) {
             if (typeof avatarUrl !== 'string') return;
-            if (avatarUrl.length > LIMITS.avatarUrl.max) return;
+            if (avatarUrl.length > LIMITS.avatarUrl.max) {
+                socket.emit('error', `Avatar URL must be ${LIMITS.avatarUrl.max} characters or fewer`);
+                return;
+            }
         }
 
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
