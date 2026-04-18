@@ -80,5 +80,6 @@ If `DATABASE_URL` is provided in `.env`, the server uses PostgreSQL. Otherwise, 
 - **Jira**: Users can configure basic auth (`apiToken`) to connect their Jira accounts. Issue keys and URLs are parsed for importing via direct links or JQL. Story points can be synchronized back to Jira once estimated.
 
 ### Deployment & Environment
-- **Docker**: Equipped with a multi-stage `Dockerfile` (Node 20 Alpine) to compile workspaces and launch the robust static server. 
+- **Docker**: Equipped with a multi-stage `Dockerfile` (Node 20 Alpine) to compile workspaces and launch the static server on port 8080.
+- **Docker Compose**: `docker-compose.yml` orchestrates the app + Postgres 16 together. Copy `.env.example` to `.env`, set `DB_USER` and `DB_PASSWORD`, then run `docker compose up -d`. Schema is created automatically on first boot.
 - **Keep-alive**: The frontend utilizes a repetitive 10-minute heartbeat polling `/api/health` to deter free-tier PaaS (like Render.com) from suspending during gameplay.

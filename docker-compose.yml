@@ -1,0 +1,31 @@
+services:
+  take5-app:
+    build: .
+    container_name: take5-app
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@take5-db:5432/poker_db
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    depends_on:
+      take5-db:
+        condition: service_healthy
+
+  take5-db:
+    image: postgres:16-alpine
+    container_name: take5-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=poker_db
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d poker_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
