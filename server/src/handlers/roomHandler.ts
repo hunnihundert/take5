@@ -60,16 +60,17 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('joinRoom', async (payload: unknown, callback) => {
+        const ack = typeof callback === 'function' ? callback : () => {};
         if (typeof payload !== 'object' || payload === null) return;
         const { roomCode, playerName } = payload as { roomCode?: unknown; playerName?: unknown };
         if (typeof roomCode !== 'string') return;
         if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
-            callback({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+            ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
             return;
         }
         if (typeof playerName !== 'string') return;
         if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
-            callback({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            ack({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
             return;
         }
 
@@ -77,14 +78,14 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             // Check if session is already in a different room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
             if (existingRoom && existingRoom.toUpperCase() !== roomCode.toUpperCase()) {
-                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                ack({ success: false, error: `You are already in room ${existingRoom}` });
                 return;
             }
 
             const result = await roomManager.joinRoom(roomCode, playerName, sessionId);
 
             if (!result.success) {
-                callback({ success: false, error: result.error });
+                ack({ success: false, error: result.error });
                 return;
             }
 
@@ -97,7 +98,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
             socket.join(room.code);
 
-            callback({ success: true });
+            ack({ success: true });
 
             // Notify new player
             socket.emit('roomJoined', {
@@ -113,7 +114,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             socket.to(room.code).emit('playerJoined', player);
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            callback({ success: false, error: message });
+            ack({ success: false, error: message });
         }
     });
 
