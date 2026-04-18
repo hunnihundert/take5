@@ -7,7 +7,7 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, sessionMana
     socket.on('addManualStory', async (summary: string) => {
         if (typeof summary !== 'string') return;
         if (!isValidString(summary, LIMITS.storySummary.min, LIMITS.storySummary.max)) {
-            socket.emit('error', `Story summary must be 1–${LIMITS.storySummary.max} characters`);
+            socket.emit('error', `Story summary must be ${LIMITS.storySummary.min}–${LIMITS.storySummary.max} characters`);
             return;
         }
 
