@@ -338,7 +338,7 @@ const GameRoom = () => {
         </div>
 
         {/* Card Selection and Controls */}
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Card Deck */}
           {!revealed && !currentPlayer?.isObserver && (
             <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -355,7 +355,7 @@ const GameRoom = () => {
 
           {/* Observer Message */}
           {!revealed && currentPlayer?.isObserver && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
               <div className="text-center py-8">
                 <svg className="mx-auto h-16 w-16 text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -369,7 +369,7 @@ const GameRoom = () => {
 
           {/* Moderator Controls */}
           {currentPlayer?.isModerator && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className={`bg-white rounded-2xl shadow-lg p-6 ${!revealed && !currentPlayer?.isObserver ? '' : 'lg:col-span-2'}`}>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Moderator controls
               </h2>
