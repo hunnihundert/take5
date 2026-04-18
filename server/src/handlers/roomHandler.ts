@@ -9,7 +9,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         const ack = typeof callback === 'function' ? callback : () => {};
         if (typeof playerName !== 'string') return;
         if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
-            ack({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            ack({ success: false, error: `Player name must be ${LIMITS.playerName.min}–${LIMITS.playerName.max} characters` });
             return;
         }
         if (roomCode !== undefined && roomCode !== null) {
@@ -70,7 +70,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         }
         if (typeof playerName !== 'string') return;
         if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
-            ack({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            ack({ success: false, error: `Player name must be ${LIMITS.playerName.min}–${LIMITS.playerName.max} characters` });
             return;
         }
 
