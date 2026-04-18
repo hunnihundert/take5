@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import { CardValue, Player, RoomState } from '../types';
 
@@ -17,6 +17,9 @@ interface UseGameSocketProps {
 }
 
 export const useGameSocket = ({ socket, sessionId, roomState, setRoomState, setIncomingEmojis }: UseGameSocketProps) => {
+    const sessionIdRef = useRef<string | null>(sessionId);
+    useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+
     useEffect(() => {
         if (!socket) return;
 
@@ -86,7 +89,7 @@ export const useGameSocket = ({ socket, sessionId, roomState, setRoomState, setI
 
         socket.on('emojiThrown', ({ fromPlayerId, toPlayerId, emoji }: { fromPlayerId: string; toPlayerId: string; emoji: string }) => {
             // Ignore own emojis as they are handled optimistically
-            if (fromPlayerId === sessionId) return;
+            if (fromPlayerId === sessionIdRef.current) return;
 
             const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             setIncomingEmojis((prev: IncomingEmoji[]) => {

@@ -25,7 +25,7 @@ interface EmojiPickerProps {
 const EmojiPicker = ({ x, y, onSelect, onClose }: EmojiPickerProps) => {
   const pickerRef = useRef<HTMLDivElement>(null);
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('Lustig');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Funny');
 
   useEffect(() => {
     // Load recent emojis from localStorage
@@ -87,7 +87,7 @@ const EmojiPicker = ({ x, y, onSelect, onClose }: EmojiPickerProps) => {
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">Emoji werfen</span>
+          <span className="text-sm font-medium text-gray-700">Throw emoji</span>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
