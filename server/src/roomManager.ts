@@ -2,6 +2,7 @@ import { Room, Player, CardValue, Story, JiraConfig } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
 import { RoomRepository, DatabaseError } from './db/repository';
+import { CAPS } from './utils/validation';
 
 export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -37,7 +38,15 @@ export class RoomManager {
     throw new Error('Failed to generate unique room code');
   }
 
+  roomCount(): number {
+    return this.rooms.size;
+  }
+
   async createRoom(playerName: string, playerId: string, roomCode?: string): Promise<Result<{ room: Room; player: Player }>> {
+    if (this.rooms.size >= CAPS.maxRooms) {
+      return { success: false, error: 'Server is at capacity. Please try again later.' };
+    }
+
     let code: string;
 
     if (roomCode && roomCode.trim().length > 0) {
@@ -130,6 +139,10 @@ export class RoomManager {
 
     if (!room) {
       return { success: false, error: 'Room not found' };
+    }
+
+    if (room.players.size >= CAPS.maxPlayersPerRoom) {
+      return { success: false, error: `Room is full (max ${CAPS.maxPlayersPerRoom} players).` };
     }
 
     // Check if name already exists in the room
@@ -298,6 +311,10 @@ export class RoomManager {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
+    if (room.stories.length >= CAPS.maxStoriesPerRoom) {
+      throw new Error(`Story limit reached (max ${CAPS.maxStoriesPerRoom}).`);
+    }
+
     // Detect Jira URL in summary
     const jiraUrlRegex = /(https?:\/\/[^\s]+\/browse\/([A-Z][A-Z0-9]+-\d+))/i;
     const match = summary.match(jiraUrlRegex);
@@ -338,6 +355,10 @@ export class RoomManager {
   async addJiraStory(roomCode: string, jiraStory: Omit<Story, 'id' | 'isManual' | 'voted'>): Promise<Story | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
+
+    if (room.stories.length >= CAPS.maxStoriesPerRoom) {
+      throw new Error(`Story limit reached (max ${CAPS.maxStoriesPerRoom}).`);
+    }
 
     // Check for duplicates by key
     if (jiraStory.key && room.stories.some(s => s.key === jiraStory.key)) {
