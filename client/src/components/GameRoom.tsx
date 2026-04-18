@@ -291,7 +291,7 @@ const GameRoom = () => {
         </div>
 
         {/* Main Content Area with Stories Sidebar */}
-        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 mb-6">
           {/* Poker Table and Active Story */}
           <div className="flex-1">
             {/* Active Story Banner */}
@@ -312,7 +312,7 @@ const GameRoom = () => {
           </div>
 
           {/* Story List Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-80 flex-shrink-0 flex flex-col">
             <StoryList
               stories={stories}
               activeStory={activeStory}

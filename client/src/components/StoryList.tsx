@@ -68,7 +68,7 @@ const StoryList = ({
   const totalCount = stories.length;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-800">
@@ -146,7 +146,7 @@ const StoryList = ({
           )}
         </div>
       ) : (
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="space-y-2 overflow-y-auto flex-1 min-h-0">
           {stories.map((story) => (
             <div
               key={story.id}
