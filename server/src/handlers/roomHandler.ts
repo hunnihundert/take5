@@ -1,22 +1,37 @@
 import { SocketHandler } from './types';
 import { logger } from '../utils/logger';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('createRoom', async (playerName, roomCode, callback) => {
+        const ack = typeof callback === 'function' ? callback : () => {};
+        if (typeof playerName !== 'string') return;
+        if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
+            ack({ success: false, error: `Player name must be ${LIMITS.playerName.min}–${LIMITS.playerName.max} characters` });
+            return;
+        }
+        if (roomCode !== undefined && roomCode !== null) {
+            if (typeof roomCode !== 'string') return;
+            if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+                ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+                return;
+            }
+        }
+
         try {
             // Check if session is already in a room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
             if (existingRoom) {
-                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                ack({ success: false, error: `You are already in room ${existingRoom}` });
                 return;
             }
 
             const result = await roomManager.createRoom(playerName, sessionId, roomCode);
 
             if (!result.success) {
-                callback({ success: false, error: result.error });
+                ack({ success: false, error: result.error });
                 return;
             }
 
@@ -29,7 +44,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
             socket.join(room.code);
 
-            callback({ success: true, roomCode: room.code });
+            ack({ success: true, roomCode: room.code });
             socket.emit('roomJoined', {
                 roomCode: room.code,
                 player,
@@ -40,23 +55,37 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            callback({ success: false, error: message });
+            ack({ success: false, error: message });
         }
     });
 
-    socket.on('joinRoom', async ({ roomCode, playerName }, callback) => {
+    socket.on('joinRoom', async (payload: unknown, callback) => {
+        const ack = typeof callback === 'function' ? callback : () => {};
+        if (typeof payload !== 'object' || payload === null) return;
+        const { roomCode, playerName } = payload as { roomCode?: unknown; playerName?: unknown };
+        if (typeof roomCode !== 'string') return;
+        if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+            ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+            return;
+        }
+        if (typeof playerName !== 'string') return;
+        if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
+            ack({ success: false, error: `Player name must be ${LIMITS.playerName.min}–${LIMITS.playerName.max} characters` });
+            return;
+        }
+
         try {
             // Check if session is already in a different room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
             if (existingRoom && existingRoom.toUpperCase() !== roomCode.toUpperCase()) {
-                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                ack({ success: false, error: `You are already in room ${existingRoom}` });
                 return;
             }
 
             const result = await roomManager.joinRoom(roomCode, playerName, sessionId);
 
             if (!result.success) {
-                callback({ success: false, error: result.error });
+                ack({ success: false, error: result.error });
                 return;
             }
 
@@ -69,7 +98,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
             socket.join(room.code);
 
-            callback({ success: true });
+            ack({ success: true });
 
             // Notify new player
             socket.emit('roomJoined', {
@@ -85,11 +114,19 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             socket.to(room.code).emit('playerJoined', player);
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            callback({ success: false, error: message });
+            ack({ success: false, error: message });
         }
     });
 
     socket.on('updateAvatar', (avatarUrl: string | null) => {
+        if (avatarUrl !== null) {
+            if (typeof avatarUrl !== 'string') return;
+            if (avatarUrl.length > LIMITS.avatarUrl.max) {
+                socket.emit('error', `Avatar URL must be ${LIMITS.avatarUrl.max} characters or fewer`);
+                return;
+            }
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -103,7 +140,10 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
-    socket.on('transferModerator', ({ toPlayerId }: { toPlayerId: string }) => {
+    socket.on('transferModerator', (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { toPlayerId } = payload as { toPlayerId?: unknown };
+        if (typeof toPlayerId !== 'string') return;
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

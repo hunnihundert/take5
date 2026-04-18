@@ -1,9 +1,16 @@
 import { SocketHandler } from './types';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const storyHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('addManualStory', async (summary: string) => {
+        if (typeof summary !== 'string') return;
+        if (!isValidString(summary, LIMITS.storySummary.min, LIMITS.storySummary.max)) {
+            socket.emit('error', `Story summary must be ${LIMITS.storySummary.min}–${LIMITS.storySummary.max} characters`);
+            return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -62,7 +69,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, sessionMana
         }
     });
 
-    socket.on('applyStoryPoints', async ({ storyId, points }: { storyId: string; points: number }) => {
+    socket.on('applyStoryPoints', async (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { storyId, points } = payload as { storyId?: unknown; points?: unknown };
+        if (typeof storyId !== 'string') return;
+        if (typeof points !== 'number') return;
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

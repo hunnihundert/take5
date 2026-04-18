@@ -1,5 +1,6 @@
 import { SocketHandler } from './types';
 import { CardValue } from '../types';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
@@ -46,7 +47,16 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
-    socket.on('throwEmoji', ({ toPlayerId, emoji }) => {
+    socket.on('throwEmoji', (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { toPlayerId, emoji } = payload as Record<string, unknown>;
+        if (typeof toPlayerId !== 'string') return;
+        if (typeof emoji !== 'string') return;
+        if (!isValidString(emoji, 1, LIMITS.emoji.max)) {
+            socket.emit('error', `Emoji must be 1–${LIMITS.emoji.max} characters`);
+            return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

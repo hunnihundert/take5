@@ -457,4 +457,60 @@ describe('Room Handler Integration', () => {
     expect(leaveData.playerId).toBe(client1SessionId);
     expect(leaveData.newModeratorId).toBe(client2SessionId);
   }, 10_000);
+
+  describe('input validation', () => {
+    it('should reject createRoom with an oversized playerName', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      const longName = 'A'.repeat(51);
+      const response = await new Promise<any>((resolve) => {
+        client1.emit('createRoom', longName, roomCode, resolve);
+      });
+      expect(response.success).toBe(false);
+      expect(response.error).toMatch(/player name/i);
+    });
+
+    it('should reject createRoom with an oversized roomCode', async () => {
+      const longCode = 'A'.repeat(13);
+      const response = await new Promise<any>((resolve) => {
+        client1.emit('createRoom', 'Player 1', longCode, resolve);
+      });
+      expect(response.success).toBe(false);
+      expect(response.error).toMatch(/room code/i);
+    });
+
+    it('should reject joinRoom with an oversized playerName', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+      const longName = 'B'.repeat(51);
+      const response = await new Promise<any>((resolve) => {
+        client2.emit('joinRoom', { roomCode, playerName: longName }, resolve);
+      });
+      expect(response.success).toBe(false);
+      expect(response.error).toMatch(/player name/i);
+    });
+
+    it('should reject joinRoom with an oversized roomCode', async () => {
+      const longCode = 'C'.repeat(13);
+      const response = await new Promise<any>((resolve) => {
+        client1.emit('joinRoom', { roomCode: longCode, playerName: 'Player 1' }, resolve);
+      });
+      expect(response.success).toBe(false);
+      expect(response.error).toMatch(/room code/i);
+    });
+
+    it('should emit error when updateAvatar URL exceeds max length', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const longUrl = 'https://example.com/' + 'x'.repeat(490);
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      client1.emit('updateAvatar', longUrl);
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/avatar url/i);
+    });
+  });
 });
