@@ -117,6 +117,25 @@ describe('Game Handler Integration', () => {
     expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe(8);
   });
 
+  describe('throwEmoji validation', () => {
+    it('should silently ignore throwEmoji when emoji is not a string', async () => {
+      const noEvent = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 150));
+      const emojiThrown = new Promise<'event'>((resolve) => {
+        client2.once('emojiThrown', () => resolve('event'));
+      });
+
+      (client1 as any).emit('throwEmoji', { toPlayerId: client2.sessionId, emoji: 12345 });
+      expect(await Promise.race([emojiThrown, noEvent])).toBe('timeout');
+    });
+
+    it('should emit error when emoji exceeds max length', async () => {
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      (client1 as any).emit('throwEmoji', { toPlayerId: client2.sessionId, emoji: '😀'.repeat(11) });
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/emoji/i);
+    });
+  });
+
   it('should handle multiple players voting simultaneously', async () => {
     // 1. Create 5 more clients
     const extraClients = await Promise.all(

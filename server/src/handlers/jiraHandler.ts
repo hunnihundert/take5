@@ -1,10 +1,35 @@
 import { SocketHandler } from './types';
 import { JiraService } from '../services/jiraService';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const jiraHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('configureJira', async (config: { baseUrl: string; email: string; apiToken: string; storyPointsFieldId?: string }) => {
+        if (!config || typeof config !== 'object') return;
+        if (typeof config.baseUrl !== 'string') return;
+        if (typeof config.email !== 'string') return;
+        if (typeof config.apiToken !== 'string') return;
+        if (!isValidString(config.baseUrl, 1, LIMITS.jiraBaseUrl.max)) {
+            socket.emit('error', `Jira base URL must be 1–${LIMITS.jiraBaseUrl.max} characters`);
+            return;
+        }
+        if (!isValidString(config.email, 1, LIMITS.jiraEmail.max)) {
+            socket.emit('error', `Jira email must be 1–${LIMITS.jiraEmail.max} characters`);
+            return;
+        }
+        if (!isValidString(config.apiToken, 1, LIMITS.jiraApiToken.max)) {
+            socket.emit('error', `Jira API token must be 1–${LIMITS.jiraApiToken.max} characters`);
+            return;
+        }
+        if (config.storyPointsFieldId !== undefined) {
+            if (typeof config.storyPointsFieldId !== 'string') return;
+            if (!isValidString(config.storyPointsFieldId, 1, LIMITS.jiraFieldId.max)) {
+                socket.emit('error', `Jira field ID must be 1–${LIMITS.jiraFieldId.max} characters`);
+                return;
+            }
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -51,6 +76,12 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('addStoryByLink', async (url: string) => {
+        if (typeof url !== 'string') return;
+        if (!isValidString(url, 1, LIMITS.jiraBaseUrl.max + 100)) {
+            socket.emit('jiraError', { code: 'INVALID_URL', message: 'URL is too long' });
+            return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -103,6 +134,12 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('fetchJiraStories', async (jql: string) => {
+        if (typeof jql !== 'string') return;
+        if (!isValidString(jql, 1, LIMITS.jql.max)) {
+            socket.emit('error', `JQL must be 1–${LIMITS.jql.max} characters`);
+            return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

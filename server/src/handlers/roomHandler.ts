@@ -1,10 +1,24 @@
 import { SocketHandler } from './types';
 import { logger } from '../utils/logger';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('createRoom', async (playerName, roomCode, callback) => {
+        if (typeof playerName !== 'string') return;
+        if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
+            callback({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            return;
+        }
+        if (roomCode !== undefined && roomCode !== null) {
+            if (typeof roomCode !== 'string') return;
+            if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+                callback({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+                return;
+            }
+        }
+
         try {
             // Check if session is already in a room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
@@ -45,6 +59,17 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('joinRoom', async ({ roomCode, playerName }, callback) => {
+        if (typeof roomCode !== 'string') return;
+        if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+            callback({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+            return;
+        }
+        if (typeof playerName !== 'string') return;
+        if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
+            callback({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            return;
+        }
+
         try {
             // Check if session is already in a different room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
@@ -90,6 +115,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('updateAvatar', (avatarUrl: string | null) => {
+        if (avatarUrl !== null) {
+            if (typeof avatarUrl !== 'string') return;
+            if (avatarUrl.length > LIMITS.avatarUrl.max) return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

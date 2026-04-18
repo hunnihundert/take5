@@ -1,9 +1,16 @@
 import { SocketHandler } from './types';
+import { LIMITS, isValidString } from '../utils/validation';
 
 export const storyHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('addManualStory', async (summary: string) => {
+        if (typeof summary !== 'string') return;
+        if (!isValidString(summary, LIMITS.storySummary.min, LIMITS.storySummary.max)) {
+            socket.emit('error', `Story summary must be 1–${LIMITS.storySummary.max} characters`);
+            return;
+        }
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
