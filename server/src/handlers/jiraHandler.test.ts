@@ -152,7 +152,7 @@ describe('Jira Handler Integration', () => {
 
     it('should emit jiraError when url exceeds max length', async () => {
       const jiraErrorPromise = waitForEvent<any>(moderator, 'jiraError');
-      (moderator as any).emit('addStoryByLink', 'https://' + 'a'.repeat(LIMITS.jiraBaseUrl.max + 100));
+      (moderator as any).emit('addStoryByLink', 'https://' + 'a'.repeat(LIMITS.jiraIssueUrl.max));
       const err = await jiraErrorPromise;
       expect(err.code).toBe('INVALID_URL');
     });

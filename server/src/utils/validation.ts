@@ -9,6 +9,7 @@ export const LIMITS = {
   jiraEmail: { max: 254 },
   jiraApiToken: { max: 500 },
   jiraFieldId: { max: 50 },
+  jiraIssueUrl: { max: 300 },
 };
 
 export function isValidString(v: unknown, min: number, max: number): v is string {

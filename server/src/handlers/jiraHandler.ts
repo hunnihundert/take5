@@ -77,7 +77,7 @@ export const jiraHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
     socket.on('addStoryByLink', async (url: string) => {
         if (typeof url !== 'string') return;
-        if (!isValidString(url, 1, LIMITS.jiraBaseUrl.max + 100)) {
+        if (!isValidString(url, 1, LIMITS.jiraIssueUrl.max)) {
             socket.emit('jiraError', { code: 'INVALID_URL', message: 'URL is too long' });
             return;
         }
