@@ -312,7 +312,7 @@ const GameRoom = () => {
           </div>
 
           {/* Story List Sidebar */}
-          <div className="lg:w-80 flex-shrink-0 flex flex-col">
+          <div className="lg:w-80 flex-shrink-0 flex flex-col lg:max-h-[648px]">
             <StoryList
               stories={stories}
               activeStory={activeStory}
