@@ -47,7 +47,9 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
-    socket.on('throwEmoji', ({ toPlayerId, emoji }) => {
+    socket.on('throwEmoji', (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { toPlayerId, emoji } = payload as Record<string, unknown>;
         if (typeof toPlayerId !== 'string') return;
         if (typeof emoji !== 'string') return;
         if (!isValidString(emoji, 1, LIMITS.emoji.max)) {

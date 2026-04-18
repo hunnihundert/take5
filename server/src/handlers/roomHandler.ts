@@ -6,15 +6,16 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
     socket.on('createRoom', async (playerName, roomCode, callback) => {
+        const ack = typeof callback === 'function' ? callback : () => {};
         if (typeof playerName !== 'string') return;
         if (!isValidString(playerName, LIMITS.playerName.min, LIMITS.playerName.max)) {
-            callback({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
+            ack({ success: false, error: `Player name must be 1–${LIMITS.playerName.max} characters` });
             return;
         }
         if (roomCode !== undefined && roomCode !== null) {
             if (typeof roomCode !== 'string') return;
             if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
-                callback({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+                ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
                 return;
             }
         }
@@ -23,14 +24,14 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             // Check if session is already in a room
             const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
             if (existingRoom) {
-                callback({ success: false, error: `You are already in room ${existingRoom}` });
+                ack({ success: false, error: `You are already in room ${existingRoom}` });
                 return;
             }
 
             const result = await roomManager.createRoom(playerName, sessionId, roomCode);
 
             if (!result.success) {
-                callback({ success: false, error: result.error });
+                ack({ success: false, error: result.error });
                 return;
             }
 
@@ -43,7 +44,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
             socket.join(room.code);
 
-            callback({ success: true, roomCode: room.code });
+            ack({ success: true, roomCode: room.code });
             socket.emit('roomJoined', {
                 roomCode: room.code,
                 player,
@@ -54,11 +55,13 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            callback({ success: false, error: message });
+            ack({ success: false, error: message });
         }
     });
 
-    socket.on('joinRoom', async ({ roomCode, playerName }, callback) => {
+    socket.on('joinRoom', async (payload: unknown, callback) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { roomCode, playerName } = payload as { roomCode?: unknown; playerName?: unknown };
         if (typeof roomCode !== 'string') return;
         if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
             callback({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
