@@ -136,4 +136,5 @@ Socket.io handles all game state synchronization. Key event patterns:
 ## Deployment
 
 - **Docker:** Multi-stage Dockerfile (Node 20 Alpine). Builder compiles all workspaces; runner serves static client + Express backend on port 8080 with tini for signal handling.
+- **Docker Compose:** `docker-compose.yml` orchestrates the app + a Postgres 16 container. Requires a `.env` file with `DB_USER` and `DB_PASSWORD`. Start with `docker compose up -d`. Schema is created automatically on first boot via `syncSchema()`.
 - **Render.com:** Client includes a 10-minute heartbeat to `/api/health` to keep free-tier instances alive.

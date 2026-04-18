@@ -142,6 +142,7 @@ take5/
 ├── e2e/                         # End-to-end tests
 │   └── voting.spec.ts                  # Multi-player voting workflow
 ├── Dockerfile                   # Multi-stage Docker build (Node 20 Alpine)
+├── docker-compose.yml           # Multi-service stack (app + PostgreSQL)
 ├── .dockerignore
 ├── .env.example                 # Example environment variables
 ├── playwright.config.ts         # Playwright configuration
@@ -255,16 +256,34 @@ npm start
 
 The server serves the built client files as static assets.
 
-### Docker
+### Docker Compose (recommended — includes PostgreSQL)
+
+```bash
+cp .env.example .env
+# Edit .env: set DB_USER and DB_PASSWORD
+docker compose up -d
+```
+
+The app will be available at `http://localhost:8080`. The database schema is created automatically on first boot — no manual migration step required.
+
+To stop:
+```bash
+docker compose down
+```
+
+To stop and remove the database volume:
+```bash
+docker compose down -v
+```
+
+### Docker (standalone — no database)
 
 ```bash
 docker build -t take5 .
 docker run -p 8080:8080 take5
 ```
 
-The multi-stage build (Node 20 Alpine) compiles all workspaces and starts the server on port 8080 with tini for signal handling.
-
-With PostgreSQL persistence:
+With an external PostgreSQL instance:
 ```bash
 docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:pw@host:5432/db take5
 ```
