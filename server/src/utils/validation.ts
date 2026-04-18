@@ -1,3 +1,10 @@
+export const CAPS = {
+  maxRooms: 500,
+  maxPlayersPerRoom: 20,
+  maxStoriesPerRoom: 200,
+  maxActiveSessions: 2000,
+};
+
 export const LIMITS = {
   playerName: { min: 1, max: 50 },
   roomCode: { min: 3, max: 12 },

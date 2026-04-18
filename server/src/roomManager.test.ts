@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RoomManager } from './roomManager';
 import { CardValue } from '@taking5/shared';
+import { CAPS } from './utils/validation';
 
 // Mock logger to avoid console spam during tests
 vi.mock('./utils/logger', () => ({
@@ -402,6 +403,80 @@ describe('RoomManager', () => {
             await roomManager.removeStory(roomCode, story!.id);
 
             expect(roomManager.getActiveStory(roomCode)).toBeNull();
+        });
+    });
+
+    describe('Resource Caps', () => {
+        it('should reject createRoom when room cap is reached', async () => {
+            const fresh = new RoomManager();
+            // Fill up to the cap
+            for (let i = 0; i < CAPS.maxRooms; i++) {
+                const r = await fresh.createRoom(`Player${i}`, `pid-${i}`, `R${String(i).padStart(4, '0')}`);
+                expect(r.success).toBe(true);
+            }
+            expect(fresh.roomCount()).toBe(CAPS.maxRooms);
+            const over = await fresh.createRoom('Extra', 'pid-extra', 'REXTRA');
+            expect(over.success).toBe(false);
+            if (!over.success) expect(over.error).toMatch(/capacity/i);
+        });
+
+        it('should reject joinRoom when player cap is reached', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            const rc = result.data.room.code;
+
+            for (let i = 1; i < CAPS.maxPlayersPerRoom; i++) {
+                const r = await roomManager.joinRoom(rc, `Player${i}`, `pid-${i}`);
+                expect(r.success).toBe(true);
+            }
+
+            const over = await roomManager.joinRoom(rc, 'PlayerOver', 'pid-over');
+            expect(over.success).toBe(false);
+            if (!over.success) expect(over.error).toMatch(/full/i);
+        });
+
+        it('should throw when story cap is reached in addManualStory', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            const rc = result.data.room.code;
+
+            for (let i = 0; i < CAPS.maxStoriesPerRoom; i++) {
+                await roomManager.addManualStory(rc, `Story ${i}`);
+            }
+
+            await expect(roomManager.addManualStory(rc, 'One too many')).rejects.toThrow(/limit/i);
+        });
+
+        it('should throw when story cap is reached in addJiraStory', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            const rc = result.data.room.code;
+
+            for (let i = 0; i < CAPS.maxStoriesPerRoom; i++) {
+                await roomManager.addManualStory(rc, `Story ${i}`);
+            }
+
+            await expect(
+                roomManager.addJiraStory(rc, { summary: 'Jira story', key: 'JIRA-1', url: 'https://example.com' })
+            ).rejects.toThrow(/limit/i);
+        });
+
+        it('should return null for a duplicate Jira key even when the story cap is reached', async () => {
+            const result = await roomManager.createRoom(playerName, playerId);
+            if (!result.success) throw new Error('Setup failed');
+            const rc = result.data.room.code;
+
+            // Add the story that will be the duplicate
+            await roomManager.addJiraStory(rc, { summary: 'Existing', key: 'JIRA-DUP', url: 'https://example.com' });
+
+            // Fill the rest of the cap
+            for (let i = 1; i < CAPS.maxStoriesPerRoom; i++) {
+                await roomManager.addManualStory(rc, `Story ${i}`);
+            }
+
+            // At cap — duplicate key should return null, not throw
+            const dupe = await roomManager.addJiraStory(rc, { summary: 'Existing', key: 'JIRA-DUP', url: 'https://example.com' });
+            expect(dupe).toBeNull();
         });
     });
 

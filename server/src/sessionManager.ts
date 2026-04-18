@@ -66,6 +66,10 @@ export class SessionManager {
     return this.sessions.has(sessionId);
   }
 
+  sessionCount(): number {
+    return this.sessions.size;
+  }
+
   registerSocket(sessionId: string, socketId: string): void {
     this.socketToSession.set(socketId, sessionId);
     let sockets = this.sessionToSockets.get(sessionId);

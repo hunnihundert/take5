@@ -13,6 +13,7 @@ import { jiraHandler } from './handlers/jiraHandler';
 import { initDatabase, isDatabaseEnabled, syncSchema } from './db';
 import { RoomRepository } from './db/repository';
 import { logger } from './utils/logger';
+import { CAPS } from './utils/validation';
 
 export async function createServerApp(options?: { disconnectGraceMs?: number; voluntaryDisconnectGraceMs?: number }) {
   const app = express();
@@ -71,6 +72,9 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
       socket.data.sessionId = providedSessionId;
       socket.data.isNewSession = false;
     } else {
+      if (sessionManager.sessionCount() >= CAPS.maxActiveSessions) {
+        return next(new Error('Server at capacity'));
+      }
       const newSessionId = sessionManager.generateSessionId();
       sessionManager.createSession(newSessionId);
       socket.data.sessionId = newSessionId;
