@@ -140,7 +140,10 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         });
     });
 
-    socket.on('transferModerator', ({ toPlayerId }: { toPlayerId: string }) => {
+    socket.on('transferModerator', (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { toPlayerId } = payload as { toPlayerId?: unknown };
+        if (typeof toPlayerId !== 'string') return;
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 

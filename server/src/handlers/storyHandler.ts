@@ -69,7 +69,11 @@ export const storyHandler: SocketHandler = (io, socket, roomManager, sessionMana
         }
     });
 
-    socket.on('applyStoryPoints', async ({ storyId, points }: { storyId: string; points: number }) => {
+    socket.on('applyStoryPoints', async (payload: unknown) => {
+        if (typeof payload !== 'object' || payload === null) return;
+        const { storyId, points } = payload as { storyId?: unknown; points?: unknown };
+        if (typeof storyId !== 'string') return;
+        if (typeof points !== 'number') return;
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
