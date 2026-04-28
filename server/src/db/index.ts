@@ -56,6 +56,11 @@ export async function syncSchema(): Promise<void> {
             )
         `);
 
+        // Add card_values column if not present (idempotent — no-op on existing DBs)
+        await client.query(`
+            ALTER TABLE rooms ADD COLUMN IF NOT EXISTS card_values JSONB
+        `);
+
         // Ensure code column is VARCHAR(12) if table already existed with VARCHAR(6)
         // Check current length to avoid redundant ALTER TABLE
         const roomsCodeRes = await client.query(`

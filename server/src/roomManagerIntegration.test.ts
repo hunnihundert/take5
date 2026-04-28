@@ -17,6 +17,7 @@ describe('RoomManager Integration with Repository', () => {
             updateStoryPoints: vi.fn(),
             clearStories: vi.fn(),
             setJiraConfig: vi.fn(),
+            updateRoomCardValues: vi.fn(),
         };
         roomManager = new RoomManager(mockRepository as unknown as RoomRepository);
     });
@@ -28,6 +29,7 @@ describe('RoomManager Integration with Repository', () => {
             createdAt: new Date(),
             activeStoryId: 'story-123',
             jiraConfig: undefined,
+            cardValues: ['XS', 'S', 'M', 'L', 'XL'],
             stories: [
                 { id: 'story-123', summary: 'Hydrated Story', isManual: true, voted: false }
             ]
@@ -46,6 +48,7 @@ describe('RoomManager Integration with Repository', () => {
             expect(result.data.room.stories).toHaveLength(1);
             expect(result.data.room.stories[0].summary).toBe('Hydrated Story');
             expect(result.data.room.activeStoryId).toBe('story-123');
+            expect(result.data.room.cardValues).toEqual(['XS', 'S', 'M', 'L', 'XL']);
         }
     });
 
@@ -56,7 +59,7 @@ describe('RoomManager Integration with Repository', () => {
         const result = await roomManager.createRoom('Moderator', 'mod-id', 'NEWROOM');
 
         expect(result.success).toBe(true);
-        expect(mockRepository.createRoom).toHaveBeenCalledWith('NEWROOM');
+        expect(mockRepository.createRoom).toHaveBeenCalledWith('NEWROOM', expect.any(Array));
     });
 
     it('should persist new story to repository', async () => {

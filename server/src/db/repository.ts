@@ -16,6 +16,7 @@ export interface DbRoom {
     createdAt: Date;
     activeStoryId: string | null;
     jiraConfig: JiraConfig | undefined;
+    cardValues: string[] | null;
     stories: Story[];
 }
 
@@ -32,16 +33,28 @@ export class RoomRepository {
         throw new DatabaseError('Database error. Please try again later.');
     }
 
-    async createRoom(code: string): Promise<void> {
+    async createRoom(code: string, cardValues?: string[]): Promise<void> {
         if (!isDatabaseEnabled()) return;
 
         try {
             const db = getDb();
             await db.insert(rooms).values({
                 code,
+                cardValues: cardValues ?? null,
             });
         } catch (error: unknown) {
             this.handleError(error, 'createRoom');
+        }
+    }
+
+    async updateRoomCardValues(code: string, cardValues: string[]): Promise<void> {
+        if (!isDatabaseEnabled()) return;
+
+        try {
+            const db = getDb();
+            await db.update(rooms).set({ cardValues }).where(eq(rooms.code, code));
+        } catch (error: unknown) {
+            this.handleError(error, 'updateRoomCardValues');
         }
     }
 
@@ -189,6 +202,7 @@ export class RoomRepository {
             createdAt: room.createdAt,
             activeStoryId: room.activeStoryId,
             jiraConfig: undefined,
+            cardValues: room.cardValues ?? null,
             stories: storyList,
         };
     }

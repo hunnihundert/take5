@@ -112,7 +112,7 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
         }
     });
 
-    socket.on('setDeckConfig', (cardValuesPayload: unknown) => {
+    socket.on('setDeckConfig', async (cardValuesPayload: unknown) => {
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -128,7 +128,7 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
             return;
         }
 
-        const result = roomManager.updateDeckConfig(roomCode, validation.values);
+        const result = await roomManager.updateDeckConfig(roomCode, validation.values);
         if (!result) return;
 
         if (result.clearedVotes) {

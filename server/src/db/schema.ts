@@ -1,9 +1,10 @@
-import { pgTable, varchar, timestamp, uuid, text, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, timestamp, uuid, text, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
 
 export const rooms = pgTable('rooms', {
     code: varchar('code', { length: 12 }).primaryKey(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     activeStoryId: uuid('active_story_id'),
+    cardValues: jsonb('card_values').$type<string[]>(),
     // Jira config is intentionally not persisted - tokens should not be stored in the database
     // Users must re-configure Jira when rejoining a room
 });

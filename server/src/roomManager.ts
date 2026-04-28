@@ -93,7 +93,7 @@ export class RoomManager {
     // Persist to DB first
     if (this.repository) {
       try {
-        await this.repository.createRoom(code);
+        await this.repository.createRoom(code, room.cardValues);
       } catch (error: unknown) {
         // Handle Postgres unique_violation error (23505) via DatabaseError
         if (error instanceof DatabaseError && error.code === '23505') {
@@ -128,7 +128,7 @@ export class RoomManager {
             stories: dbRoom.stories,
             activeStoryId: dbRoom.activeStoryId ?? undefined,
             jiraConfig: dbRoom.jiraConfig,
-            cardValues: [...DEFAULT_CARD_VALUES],
+            cardValues: dbRoom.cardValues ?? [...DEFAULT_CARD_VALUES],
           };
           this.rooms.set(normalizedCode, room);
           logger.info(`Room ${normalizedCode} hydrated from database`);
@@ -220,7 +220,7 @@ export class RoomManager {
     return true;
   }
 
-  updateDeckConfig(roomCode: string, cardValues: string[]): { clearedVotes: boolean } | null {
+  async updateDeckConfig(roomCode: string, cardValues: string[]): Promise<{ clearedVotes: boolean } | null> {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
@@ -230,6 +230,11 @@ export class RoomManager {
     }
 
     room.cardValues = cardValues;
+
+    if (this.repository) {
+      await this.repository.updateRoomCardValues(roomCode, cardValues);
+    }
+
     return { clearedVotes: anyVotes };
   }
 
