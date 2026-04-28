@@ -43,20 +43,20 @@ npm run db:migrate --workspace=server   # Run migrations
 
 - **`/client`** - React 18 + Vite + Tailwind CSS frontend
 - **`/server`** - Express + Socket.io backend with optional PostgreSQL (Drizzle ORM)
-- **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig, CardValue
+- **`/shared`** - Shared TypeScript types (`@taking5/shared`) - Player, Story, RoomState, JiraConfig, CardValue, DECK_PRESETS, DEFAULT_CARD_VALUES
 - **`/e2e`** - Playwright end-to-end tests
 
 ### Real-time Communication
 
 Socket.io handles all game state synchronization. Key event patterns:
 
-**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`, `leaveRoom`
+**Client -> Server:** `createRoom`, `joinRoom`, `selectCard`, `revealCards`, `startNewRound`, `toggleObserver`, `updateAvatar`, `throwEmoji`, `transferModerator`, `leaveRoom`, `setDeckConfig`
 
 **Client -> Server (Stories):** `addManualStory`, `removeStory`, `selectStory`, `applyStoryPoints`, `clearStories`
 
 **Client -> Server (Jira):** `configureJira`, `disconnectJira`, `addStoryByLink`, `fetchJiraStories`, `refreshJiraStories`
 
-**Server -> Client:** `sessionCreated`, `roomJoined`, `playerJoined`, `playerLeft`, `playerDisconnected`, `playerReconnected`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`,`moderatorTransferred`, `error`
+**Server -> Client:** `sessionCreated`, `roomJoined`, `playerJoined`, `playerLeft`, `playerDisconnected`, `playerReconnected`, `cardSelected`, `cardsRevealed`, `newRound`, `observerToggled`, `avatarUpdated`, `emojiThrown`, `moderatorTransferred`, `deckConfigUpdated`, `error`
 
 **Server -> Client (Stories):** `storyAdded`, `storiesUpdated`, `storySelected`, `storyPointsApplied`
 
@@ -75,7 +75,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 - `server/src/sessionManager.ts` - Session tracking: session↔socket mapping, disconnect grace period timers
 - `server/src/roomManager.ts` - Core game logic (room creation, player management, voting, DB hydration)
 - `server/src/handlers/roomHandler.ts` - Room socket events (create, join, avatar, disconnect with grace period)
-- `server/src/handlers/gameHandler.ts` - Game socket events (card select, reveal, new round, observer, emoji)
+- `server/src/handlers/gameHandler.ts` - Game socket events (card select, reveal, new round, observer, emoji, deck config)
 - `server/src/handlers/storyHandler.ts` - Story socket events (add, remove, select, apply points, clear)
 - `server/src/handlers/jiraHandler.ts` - Jira socket events (configure, disconnect, import, fetch, refresh)
 - `server/src/services/jiraService.ts` - Jira REST API integration (fetch issues, search, sync points)
@@ -93,14 +93,16 @@ Socket.io handles all game state synchronization. Key event patterns:
 - `client/src/hooks/useStorySocket.ts` - Story CRUD events
 - `client/src/hooks/useJiraSocket.ts` - Jira integration events
 - `client/src/components/GameRoom.tsx` - Main game interface
-- `client/src/components/PokerTable.tsx` - Circular player layout with consensus detection
+- `client/src/components/PokerTable.tsx` - Circular player layout with consensus detection and average display
+- `client/src/components/CardDeck.tsx` - Card deck rendered from room's `cardValues`
+- `client/src/components/DeckConfigModal.tsx` - Deck configuration modal (presets + custom tag input)
 - `client/src/components/StoryList.tsx` - Story sidebar with Jira import
 - `client/src/utils/linkRenderer.tsx` - Renders HTTP/HTTPS URLs as clickable links in story text
 - `client/src/utils/confetti.ts` - Canvas-confetti wrapper for consensus celebrations
 
 **Shared:**
 
-- `shared/src/index.ts` - TypeScript interfaces (Player, Story, RoomState, JiraConfig, CardValue)
+- `shared/src/index.ts` - TypeScript interfaces (Player, Story, RoomState, JiraConfig, CardValue) + `DECK_PRESETS` and `DEFAULT_CARD_VALUES` constants
 
 ## Environment Variables
 
@@ -117,7 +119,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 
 ## Game-Specific Logic
 
-- **Card values:** Fibonacci sequence (1, 2, 3, 5, 8, 13)
+- **Card values:** Configurable per room by the moderator. Default is Fibonacci (1, 2, 3, 5, 8, 13, 21). Built-in presets: Fibonacci, Extended Fibonacci, T-Shirt Sizes, Powers of 2. Custom decks: 1–20 values, max 8 chars each, no duplicates. `DECK_PRESETS` and `DEFAULT_CARD_VALUES` are exported from `@taking5/shared`. `CardValue` is `string` (widened from a literal union). Server validates submitted card values against the room's current deck in `selectCard`. Changing the deck via `setDeckConfig` calls `startNewRound` first if any votes exist, then broadcasts `newRound` + `deckConfigUpdated`. Non-numeric decks (e.g. T-Shirt) suppress the average display and apply-points dialog on the client.
 - **Room codes:** 6-character uppercase alphanumeric (auto-generated), or custom 3-12 character codes
 - **Moderator:** First player becomes moderator; auto-reassigns on disconnect (after grace period); can be manually transferred via right-click context menu (`transferModerator` event → `moderatorTransferred` broadcast)
 

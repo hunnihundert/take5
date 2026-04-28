@@ -16,7 +16,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 
 ### Core Features
 - **Real-time Sync** - All players see live updates via Socket.io
-- **Compact Card Deck** - Values: 1, 2, 3, 5, 8, 13 (Fibonacci-based)
+- **Configurable Card Deck** - Moderator can choose a preset (Fibonacci, Extended Fibonacci, T-Shirt Sizes, Powers of 2) or build a custom deck; changing the deck mid-round resets all votes
 - **Custom Room Codes** - Create rooms with a custom code (3-12 chars) or auto-generated (6 chars)
 - **Emoji Throwing** - Right-click a player to throw emojis (arc animation with bounce effect)
 - **Player Avatars** - Upload and crop your own profile picture
@@ -26,7 +26,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **Smooth Animations** - Flip animation when cards are revealed
 - **Observer Mode** - Watch without participating in voting
 - **No Duplicate Names** - Server-side validation prevents name conflicts
-- **Moderator Controls** - Room creator can reveal cards, start new rounds, and transfer moderator role
+- **Moderator Controls** - Room creator can reveal cards, start new rounds, configure the card deck, and transfer moderator role
 - **Moderator Transfer** - Right-click any player to hand over the moderator role
 - **Auto Average** - Instant result calculation after reveal
 - **Auto Reveal** - Cards automatically reveal when all active players have voted
@@ -65,7 +65,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **In-Memory Storage** as fallback (no database required)
 
 ### Shared
-- **@taking5/shared** - Shared TypeScript types (Player, Story, RoomState, JiraConfig, CardValue)
+- **@taking5/shared** - Shared TypeScript types (Player, Story, RoomState, JiraConfig, CardValue, DECK_PRESETS)
 
 ### Testing
 - **Vitest** for unit and integration tests (client + server)
@@ -83,7 +83,8 @@ take5/
 │   │   │   ├── Home.tsx                 # Landing page (create/join room)
 │   │   │   ├── GameRoom.tsx             # Main game room
 │   │   │   ├── PokerTable.tsx           # Poker table (circular layout)
-│   │   │   ├── CardDeck.tsx             # Card deck (1,2,3,5,8,13)
+│   │   │   ├── CardDeck.tsx             # Card deck (values driven by room config)
+│   │   │   ├── DeckConfigModal.tsx      # Deck configuration modal (presets + custom)
 │   │   │   ├── PlayerList.tsx           # Player list with avatars
 │   │   │   ├── Results.tsx              # Results display with average
 │   │   │   ├── AvatarEditor.tsx         # Avatar cropping tool
@@ -137,7 +138,7 @@ take5/
 │   └── tsconfig.json
 ├── shared/                      # Shared TypeScript types
 │   ├── src/
-│   │   └── index.ts                     # Player, Story, RoomState, JiraConfig, CardValue
+│   │   └── index.ts                     # Player, Story, RoomState, JiraConfig, CardValue, DECK_PRESETS
 │   └── package.json
 ├── e2e/                         # End-to-end tests
 │   └── voting.spec.ts                  # Multi-player voting workflow
@@ -352,13 +353,20 @@ npm run db:migrate --workspace=server
 - **Categories**: Funny, Numbers, Faces, Gestures, Hearts, Objects, Food, Animals, Nature
 - **Recently used**: Your last 5 thrown emojis appear at the top
 
-### 8. Transfer moderator role (Moderator only)
+### 8. Configure the card deck (Moderator only)
+1. Click the **Deck** button in the moderator controls area
+2. Choose a preset or switch to the **Custom** input
+3. In custom mode, type a value and press Enter or comma to add it; Backspace removes the last tag
+4. A warning appears if active votes will be reset
+5. Click **Apply** — all clients update immediately
+
+### 9. Transfer moderator role (Moderator only)
 - **Open**: Right-click another player at the poker table
 - **Select**: Click "Make Moderator" (👑) in the context menu
 - The selected player immediately becomes the new moderator
 - The previous moderator loses all moderator privileges
 
-### 9. Jira Integration (Moderator)
+### 10. Jira Integration (Moderator)
 
 #### Connect Jira
 1. Click the Jira icon in the story list
@@ -392,7 +400,16 @@ npm run db:migrate --workspace=server
   - Transfer the moderator role
 
 ### Card values
-Fibonacci sequence: **1, 2, 3, 5, 8, 13**
+The moderator configures the deck before or during a session. Built-in presets:
+
+| Preset | Values |
+|--------|--------|
+| **Fibonacci** _(default)_ | 1, 2, 3, 5, 8, 13, 21 |
+| **Extended Fibonacci** | 0, ½, 1, 2, 3, 5, 8, 13, 21, ? |
+| **T-Shirt Sizes** | XS, S, M, L, XL, XXL |
+| **Powers of 2** | 1, 2, 4, 8, 16, 32 |
+
+Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric decks suppress the average display and the apply-points dialog.
 
 ### Voting
 - Each player selects exactly one card
@@ -408,9 +425,10 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 #### Client -> Server
 - `createRoom(playerName, roomCode?, callback)` - Create a new room (optional custom code)
 - `joinRoom({ roomCode, playerName }, callback)` - Join a room
-- `selectCard(cardValue)` - Select a card
+- `selectCard(cardValue)` - Select a card (must be a value in the room's current deck)
 - `revealCards()` - Reveal cards (moderator only)
 - `startNewRound()` - Start a new round (moderator only)
+- `setDeckConfig(cardValues)` - Change the card deck (moderator only); resets votes if any are in progress
 - `toggleObserver()` - Toggle observer mode
 - `updateAvatar(avatarUrl)` - Update avatar (Base64 or null)
 - `throwEmoji({ toPlayerId, emoji })` - Throw an emoji at a player
@@ -433,7 +451,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 
 #### Server -> Client
 - `sessionCreated({ sessionId })` - New session ID assigned (stored in localStorage)
-- `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected })` - Successfully joined (also sent on reconnect/new tab)
+- `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected, cardValues })` - Successfully joined (also sent on reconnect/new tab)
 - `playerJoined(player)` - A new player joined
 - `playerLeft({ playerId, newModeratorId? })` - A player left (after 8s voluntary grace period or 60s involuntary grace period)
 - `playerDisconnected({ playerId })` - A player's connection dropped (grace period active)
@@ -445,6 +463,7 @@ Fibonacci sequence: **1, 2, 3, 5, 8, 13**
 - `avatarUpdated({ playerId, avatarUrl })` - Avatar updated
 - `emojiThrown({ fromPlayerId, toPlayerId, emoji })` - Emoji thrown
 - `moderatorTransferred({ fromPlayerId, toPlayerId })` - Moderator role transferred
+- `deckConfigUpdated({ cardValues })` - Card deck changed by the moderator
 - `error(message)` - An error occurred
 
 **Story events:**
