@@ -51,7 +51,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 players: roomManager.getPlayersArray(room),
                 stories: room.stories,
                 activeStoryId: room.activeStoryId ?? null,
-                jiraConnected: room.jiraConfig !== undefined
+                jiraConnected: room.jiraConfig !== undefined,
+                cardValues: room.cardValues
             });
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
@@ -107,7 +108,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 players: roomManager.getPlayersArray(room),
                 stories: room.stories,
                 activeStoryId: room.activeStoryId ?? null,
-                jiraConnected: room.jiraConfig !== undefined
+                jiraConnected: room.jiraConfig !== undefined,
+                cardValues: room.cardValues
             });
 
             // Notify other players

@@ -4,19 +4,19 @@ This file provides context and guidelines for Gemini CLI when working in this re
 
 ## Project Overview
 
-**Planning Poker (Take5)** is a modern, real-time collaborative estimation tool for agile teams. It allows teams to vote on story points (Fibonacci: 1, 2, 3, 5, 8, 13) with features like Jira integration, observer mode, and interactive animations.
+**Planning Poker (Take5)** is a modern, real-time collaborative estimation tool for agile teams. It allows teams to vote on story points using a configurable card deck (default Fibonacci: 1, 2, 3, 5, 8, 13, 21) with features like Jira integration, observer mode, and interactive animations.
 
 ### Architecture
 The project is a TypeScript monorepo using npm workspaces:
 - **`client/`**: React 18 frontend built with Vite and styled with Tailwind CSS.
 - **`server/`**: Node.js/Express backend using Socket.io for real-time synchronization and Drizzle ORM for PostgreSQL persistence (optional).
-- **`shared/`**: Shared TypeScript types and interfaces (`@taking5/shared`).
+- **`shared/`**: Shared TypeScript types and interfaces (`@taking5/shared`) including `DECK_PRESETS` and `DEFAULT_CARD_VALUES`.
 
 ### Communication & State Management
 - **Real-time Communication**: WebSockets (Socket.io) handle all game state synchronization.
 - **Backend Handlers**: Logic is modularized in `server/src/handlers/` (`roomHandler.ts`, `gameHandler.ts`, `storyHandler.ts`, `jiraHandler.ts`).
 - **Backend State**: The `RoomManager` class handles room logic in-memory. If PostgreSQL is enabled, it uses `RoomRepository` for persistence.
-- **Frontend State**: Managed via React Context (`GameContext.tsx`) and specialized hooks in `client/src/hooks/` (`useSocket`, `useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`).
+- **Frontend State**: Managed via React Context (`GameContext.tsx`) and specialized hooks in `client/src/hooks/` (`useSocket`, `useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). `RoomState` includes `cardValues: string[]` which drives the card deck UI.
 
 ## Building and Running
 
@@ -75,6 +75,7 @@ If `DATABASE_URL` is provided in `.env`, the server uses PostgreSQL. Otherwise, 
 
 ### Key Logic
 - **Moderator**: The first player to create/join a room is given moderator rights. The role is automatically shifted to someone else if they fully leave. Alternatively, a moderator can explicitly transfer power via right-click menu.
+- **Card Deck Configuration**: The moderator can change the card deck at any time via the **Deck** button in moderator controls. Built-in presets are `fibonacci` (default: 1 2 3 5 8 13 21), `modFibonacci`, `tshirt`, and `powersOf2`, all defined in `DECK_PRESETS` in `shared/src/index.ts`. Custom decks allow 1–20 values (max 8 chars each). Changing the deck while votes are active triggers `startNewRound` first, then broadcasts `newRound` + `deckConfigUpdated`. Non-numeric decks suppress the average and apply-points dialog. `CardValue` is `string` — the server validates incoming `selectCard` values against `room.cardValues`.
 - **Voting & Auto-Reveal**: Selected cards remain hidden. The deck auto-reveals when all active (non-observing) players have voted. Observers do not vote and bypass this criteria.
 - **Consensus & Celebration**: If all participants pick the identical card, a confetti animation executes. Embellishments like throwing emojis to a specific player are supported in real-time via right-click.
 - **Jira**: Users can configure basic auth (`apiToken`) to connect their Jira accounts. Issue keys and URLs are parsed for importing via direct links or JQL. Story points can be synchronized back to Jira once estimated.

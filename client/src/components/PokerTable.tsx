@@ -38,7 +38,8 @@ const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, pl
     const numericVotes = activePlayers
       .map(p => p.selectedCard)
       .filter(card => card !== null)
-      .map(card => parseFloat(card!));
+      .map(card => parseFloat(card!))
+      .filter(val => isFinite(val));
 
     if (numericVotes.length === 0) return null;
 
@@ -49,8 +50,8 @@ const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, pl
 
   // Check for consensus
   const playersWithCards = activePlayers.filter(p => p.selectedCard !== null);
-  const cardValues = [...new Set(playersWithCards.map(p => p.selectedCard))];
-  const hasConsensus = playersWithCards.length > 1 && cardValues.length === 1;
+  const uniqueSelectedCards = [...new Set(playersWithCards.map(p => p.selectedCard))];
+  const hasConsensus = playersWithCards.length > 1 && uniqueSelectedCards.length === 1;
 
   const average = calculateAverage();
 
@@ -107,20 +108,25 @@ const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, pl
                         <svg className="w-12 h-12 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
-                        <p className="text-lg font-bold text-green-800">Konsens!</p>
-                        <div className="text-5xl font-bold text-green-600 my-2">{cardValues[0]}</div>
-                        <p className="text-sm text-gray-600">Alle sind sich einig</p>
+                        <p className="text-lg font-bold text-green-800">Consensus!</p>
+                        <div className="text-5xl font-bold text-green-600 my-2">{uniqueSelectedCards[0]}</div>
+                        <p className="text-sm text-gray-600">Everyone agrees</p>
                       </div>
                     </div>
                   ) : average !== null ? (
                     <div className="bg-white/95 rounded-2xl shadow-2xl p-6 backdrop-blur-sm border-2 border-primary-400">
-                      <p className="text-sm text-gray-600 mb-2">Durchschnitt</p>
+                      <p className="text-sm text-gray-600 mb-2">Average</p>
                       <div className="text-6xl font-bold text-primary-700">{average}</div>
-                      <p className="text-xs text-gray-500 mt-2">{playersWithCards.length} Stimmen</p>
+                      <p className="text-xs text-gray-500 mt-2">{playersWithCards.length} votes</p>
+                    </div>
+                  ) : playersWithCards.length > 0 ? (
+                    <div className="bg-white/95 rounded-2xl shadow-2xl p-6 backdrop-blur-sm border-2 border-gray-300">
+                      <p className="text-sm text-gray-500 mb-1">No numeric average</p>
+                      <p className="text-xs text-gray-400">{playersWithCards.length} votes</p>
                     </div>
                   ) : (
                     <div className="bg-white/95 rounded-2xl shadow-2xl p-6 backdrop-blur-sm border-2 border-gray-300">
-                      <p className="text-gray-600">Keine Stimmen</p>
+                      <p className="text-gray-600">No votes</p>
                     </div>
                   )}
                 </div>
@@ -212,12 +218,12 @@ const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, pl
                       )}
                       {player.isObserver && (
                         <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full font-medium">
-                          BEOB
+                          OBS
                         </span>
                       )}
                       {isCurrentPlayer && (
                         <span className="px-2 py-0.5 bg-primary-100 text-primary-800 text-xs rounded-full font-medium">
-                          Du
+                          You
                         </span>
                       )}
                     </div>

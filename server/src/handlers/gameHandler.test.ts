@@ -60,8 +60,8 @@ describe('Game Handler Integration', () => {
 
     const players = await cardsRevealedPromise;
     expect(players).toHaveLength(2);
-    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe(3);
-    expect(players.find(p => p.id === client2.sessionId).selectedCard).toBe(5);
+    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe('3');
+    expect(players.find(p => p.id === client2.sessionId).selectedCard).toBe('5');
   });
 
   it('should not allow non-moderators to manually reveal cards', async () => {
@@ -114,7 +114,80 @@ describe('Game Handler Integration', () => {
 
     const players = await cardsRevealedPromise;
     expect(players).toBeDefined();
-    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe(8);
+    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe('8');
+  });
+
+  describe('setDeckConfig', () => {
+    it('moderator can update deck and all clients receive deckConfigUpdated', async () => {
+      const newDeck = ['XS', 'S', 'M', 'L', 'XL'];
+      const p1Promise = waitForEvent<any>(client1, 'deckConfigUpdated');
+      const p2Promise = waitForEvent<any>(client2, 'deckConfigUpdated');
+
+      client1.emit('setDeckConfig', newDeck);
+
+      const [data1, data2] = await Promise.all([p1Promise, p2Promise]);
+      expect(data1.cardValues).toEqual(newDeck);
+      expect(data2.cardValues).toEqual(newDeck);
+
+      const room = server.roomManager.getRoom(roomCode);
+      expect(room.cardValues).toEqual(newDeck);
+    });
+
+    it('non-moderator setDeckConfig is silently rejected', async () => {
+      const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 150));
+      const event = new Promise<'event'>((resolve) => {
+        client1.once('deckConfigUpdated', () => resolve('event'));
+      });
+
+      client2.emit('setDeckConfig', ['1', '2', '3']);
+
+      expect(await Promise.race([event, timeout])).toBe('timeout');
+      const room = server.roomManager.getRoom(roomCode);
+      expect(room.cardValues).not.toEqual(['1', '2', '3']);
+    });
+
+    it('changing deck mid-round emits newRound before deckConfigUpdated and clears votes', async () => {
+      // Both players vote
+      client1.emit('selectCard', '5');
+      client2.emit('selectCard', '8');
+      // Wait for both cardSelected events so votes are registered server-side
+      await Promise.all([
+        waitForEvent(client1, 'cardSelected'),
+        waitForEvent(client2, 'cardSelected'),
+      ]);
+
+      const order: string[] = [];
+      const newRoundPromise = waitForEvent(client2, 'newRound').then(() => { order.push('newRound'); });
+      const deckUpdatedPromise = waitForEvent<any>(client2, 'deckConfigUpdated').then(data => { order.push('deckConfigUpdated'); return data; });
+
+      client1.emit('setDeckConfig', ['XS', 'S', 'M', 'L', 'XL']);
+
+      const [, deckData] = await Promise.all([newRoundPromise, deckUpdatedPromise]);
+
+      expect(order).toEqual(['newRound', 'deckConfigUpdated']);
+      expect(deckData.cardValues).toEqual(['XS', 'S', 'M', 'L', 'XL']);
+
+      const room = server.roomManager.getRoom(roomCode);
+      expect(Array.from(room.players.values()).every(p => !p.hasVoted && p.selectedCard === null)).toBe(true);
+    });
+
+    it('selectCard rejects values not in the updated deck', async () => {
+      // Switch to T-shirt deck
+      await new Promise<void>((resolve) => {
+        client1.once('deckConfigUpdated', () => resolve());
+        client1.emit('setDeckConfig', ['XS', 'S', 'M', 'L', 'XL']);
+      });
+
+      // Old Fibonacci value should now be rejected
+      const errorPromise = waitForEvent<string>(client1, 'error');
+      client1.emit('selectCard', '5');
+      const err = await errorPromise;
+      expect(err).toMatch(/invalid card value/i);
+
+      // Room state should not record a vote
+      const room = server.roomManager.getRoom(roomCode);
+      expect(room.players.get(client1.sessionId)?.hasVoted).toBe(false);
+    });
   });
 
   describe('throwEmoji validation', () => {
@@ -150,9 +223,10 @@ describe('Game Handler Integration', () => {
     const allClients = [client1, client2, ...extraClients];
     const cardsRevealedPromise = waitForEvent<any[]>(client1, 'cardsRevealed');
 
-    // 2. All vote at once
+    // 2. All vote at once with valid deck values
+    const deckValues = ['1', '2', '3', '5', '8', '13', '21'];
     allClients.forEach((c, i) => {
-      c.emit('selectCard', i % 13);
+      c.emit('selectCard', deckValues[i % deckValues.length]);
     });
 
     const revealedPlayers = await cardsRevealedPromise;

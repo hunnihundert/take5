@@ -1,4 +1,4 @@
-import { Room, Player, CardValue, Story, JiraConfig } from './types';
+import { Room, Player, CardValue, Story, JiraConfig, DEFAULT_CARD_VALUES } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
 import { RoomRepository, DatabaseError } from './db/repository';
@@ -86,13 +86,14 @@ export class RoomManager {
       createdAt: new Date(),
       stories: [],
       activeStoryId: undefined,
-      jiraConfig: undefined
+      jiraConfig: undefined,
+      cardValues: [...DEFAULT_CARD_VALUES]
     };
 
     // Persist to DB first
     if (this.repository) {
       try {
-        await this.repository.createRoom(code);
+        await this.repository.createRoom(code, room.cardValues);
       } catch (error: unknown) {
         // Handle Postgres unique_violation error (23505) via DatabaseError
         if (error instanceof DatabaseError && error.code === '23505') {
@@ -127,6 +128,7 @@ export class RoomManager {
             stories: dbRoom.stories,
             activeStoryId: dbRoom.activeStoryId ?? undefined,
             jiraConfig: dbRoom.jiraConfig,
+            cardValues: dbRoom.cardValues ?? [...DEFAULT_CARD_VALUES],
           };
           this.rooms.set(normalizedCode, room);
           logger.info(`Room ${normalizedCode} hydrated from database`);
@@ -211,9 +213,29 @@ export class RoomManager {
     const player = room.players.get(playerId);
     if (!player) return false;
 
+    if (!room.cardValues.includes(cardValue)) return false;
+
     player.selectedCard = cardValue;
     player.hasVoted = true;
     return true;
+  }
+
+  async updateDeckConfig(roomCode: string, cardValues: string[]): Promise<{ clearedVotes: boolean } | null> {
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
+
+    // Persist to DB before mutating memory so a failed write leaves state consistent
+    if (this.repository) {
+      await this.repository.updateRoomCardValues(roomCode, cardValues);
+    }
+
+    const anyVotes = Array.from(room.players.values()).some(p => p.hasVoted) || room.revealed;
+    if (anyVotes) {
+      this.startNewRound(roomCode);
+    }
+    room.cardValues = cardValues;
+
+    return { clearedVotes: anyVotes };
   }
 
   revealCards(roomCode: string): Room | null {

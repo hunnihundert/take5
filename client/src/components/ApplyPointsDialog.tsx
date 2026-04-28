@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Story, Player, CardValue } from '../types';
+import { Story, Player } from '../types';
 import { renderSummaryWithLinks } from '../utils/linkRenderer';
 
 interface ApplyPointsDialogProps {
@@ -7,50 +7,58 @@ interface ApplyPointsDialogProps {
   story: Story | null;
   players: Player[];
   revealed: boolean;
+  cardValues: string[];
   onApplyPoints: (storyId: string, points: number) => void;
   onSkip: () => void;
   onClose: () => void;
 }
-
-const CARD_VALUES: CardValue[] = ['1', '2', '3', '5', '8', '13'];
 
 const ApplyPointsDialog = ({
   isOpen,
   story,
   players,
   revealed,
+  cardValues,
   onApplyPoints,
   onSkip,
   onClose
 }: ApplyPointsDialogProps) => {
   const [selectedPoints, setSelectedPoints] = useState<number | null>(null);
 
-  // Calculate consensus and average
-  const activePlayers = players.filter(p => !p.isObserver && p.hasVoted);
-  const votes = activePlayers.map(p => parseInt(p.selectedCard || '0'));
-  const uniqueVotes = [...new Set(votes.filter(v => v > 0))];
-  const hasConsensus = uniqueVotes.length === 1;
-  const consensusValue = hasConsensus ? uniqueVotes[0] : null;
+  const toNum = (v: string) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 
-  // Calculate average
-  const validVotes = votes.filter(v => v > 0);
-  const average = validVotes.length > 0
-    ? Math.round(validVotes.reduce((a, b) => a + b, 0) / validVotes.length)
+  // Only strictly numeric card values can be applied as story points
+  const numericCardValues = cardValues.filter(v => toNum(v) !== null);
+
+  // Calculate consensus using string equality (works for any card type)
+  const activePlayers = players.filter(p => !p.isObserver && p.hasVoted);
+  const selectedCards = activePlayers.map(p => p.selectedCard).filter(Boolean);
+  const uniqueCards = [...new Set(selectedCards)];
+  const hasConsensus = uniqueCards.length === 1 && selectedCards.length > 0;
+  const consensusCard = hasConsensus ? uniqueCards[0] : null;
+  const consensusValue = consensusCard != null ? toNum(consensusCard) : null;
+
+  // Calculate average over strictly numeric votes only
+  const numericVotes = activePlayers
+    .map(p => toNum(p.selectedCard ?? ''))
+    .filter((n): n is number => n !== null);
+  const average = numericVotes.length > 0
+    ? Math.round(numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length)
     : null;
 
-  // Find nearest Fibonacci value for average
-  const nearestFibonacci = average !== null
-    ? CARD_VALUES.reduce((prev, curr) =>
-        Math.abs(parseInt(curr) - average) < Math.abs(parseInt(prev) - average) ? curr : prev
+  // Find nearest card value for average
+  const nearestValue = average !== null && numericCardValues.length > 0
+    ? numericCardValues.reduce((prev, curr) =>
+        Math.abs(toNum(curr)! - average) < Math.abs(toNum(prev)! - average) ? curr : prev
       )
     : null;
 
   // Reset selected points when dialog opens or story changes
   useEffect(() => {
     if (isOpen && story) {
-      setSelectedPoints(consensusValue || (nearestFibonacci ? parseInt(nearestFibonacci) : null));
+      setSelectedPoints(consensusValue ?? (nearestValue !== null ? toNum(nearestValue) : null));
     }
-  }, [isOpen, story?.id, consensusValue, nearestFibonacci]);
+  }, [isOpen, story?.id, consensusValue, nearestValue]);
 
   if (!isOpen || !story || !revealed) return null;
 
@@ -102,7 +110,7 @@ const ApplyPointsDialog = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="text-sm font-medium text-green-800">
-                  Consensus reached: {consensusValue} Story Points
+                  Consensus reached: {consensusCard}{consensusValue !== null ? ' Story Points' : ''}
                 </span>
               </div>
             </div>
@@ -113,7 +121,7 @@ const ApplyPointsDialog = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <span className="text-sm font-medium text-yellow-800">
-                  No consensus - Average: {average || '-'}
+                  No consensus{average !== null ? ` - Average: ${average}` : ''}
                 </span>
               </div>
             </div>
@@ -125,12 +133,12 @@ const ApplyPointsDialog = ({
               Select Story Points
             </label>
             <div className="flex flex-wrap gap-2">
-              {CARD_VALUES.map((value) => (
+              {numericCardValues.map((value) => (
                 <button
                   key={value}
-                  onClick={() => setSelectedPoints(parseInt(value))}
+                  onClick={() => setSelectedPoints(toNum(value))}
                   className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
-                    selectedPoints === parseInt(value)
+                    selectedPoints === toNum(value)
                       ? 'bg-primary-600 text-white shadow-md scale-105'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}

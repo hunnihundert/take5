@@ -4,7 +4,7 @@ import { useRoomSocket } from '../hooks/useRoomSocket';
 import { useGameSocket } from '../hooks/useGameSocket';
 import { useStorySocket } from '../hooks/useStorySocket';
 import { useJiraSocket } from '../hooks/useJiraSocket';
-import { RoomState, CardValue } from '../types';
+import { RoomState, CardValue, DEFAULT_CARD_VALUES } from '../types';
 
 const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 const RECONNECT_TIMEOUT_MS = 3_000; // 3 seconds to wait for auto-rejoin
@@ -31,6 +31,7 @@ interface GameContextType {
     throwEmoji: (toPlayerId: string, emoji: string) => void;
     transferModerator: (toPlayerId: string) => void;
     removeIncomingEmoji: (id: string) => void;
+    setDeckConfig: (cardValues: string[]) => void;
 
     // Story management
     addManualStory: (summary: string) => void;
@@ -58,7 +59,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         revealed: false,
         stories: [],
         activeStory: null,
-        jiraConnected: false
+        jiraConnected: false,
+        cardValues: DEFAULT_CARD_VALUES
     });
     const [inRoom, setInRoom] = useState(false);
     const [reconnecting, setReconnecting] = useState(false);
@@ -117,7 +119,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Initialize logic hooks
     const { createRoom, joinRoom, updateAvatar, transferModerator } = useRoomSocket({ socket, setRoomState, setInRoom });
-    const { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji } = useGameSocket({
+    const { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji, setDeckConfig } = useGameSocket({
         socket,
         sessionId,
         roomState,
@@ -147,6 +149,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throwEmoji,
         transferModerator,
         removeIncomingEmoji,
+        setDeckConfig,
         addManualStory,
         removeStory,
         selectStory,

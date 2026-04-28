@@ -99,12 +99,17 @@ export const useGameSocket = ({ socket, sessionId, roomState, setRoomState, setI
             });
         });
 
+        socket.on('deckConfigUpdated', ({ cardValues }: { cardValues: string[] }) => {
+            setRoomState((prev: RoomState) => ({ ...prev, cardValues }));
+        });
+
         return () => {
             socket.off('cardSelected');
             socket.off('cardsRevealed');
             socket.off('newRound');
             socket.off('observerToggled');
             socket.off('emojiThrown');
+            socket.off('deckConfigUpdated');
         };
     }, [socket, setRoomState, setIncomingEmojis]);
 
@@ -152,5 +157,10 @@ export const useGameSocket = ({ socket, sessionId, roomState, setRoomState, setI
         socket.emit('throwEmoji', { toPlayerId, emoji });
     }, [socket, setIncomingEmojis]);
 
-    return { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji };
+    const setDeckConfig = useCallback((cardValues: string[]) => {
+        if (!socket) return;
+        socket.emit('setDeckConfig', cardValues);
+    }, [socket]);
+
+    return { selectCard, revealCards, startNewRound, toggleObserver, throwEmoji, setDeckConfig };
 };
