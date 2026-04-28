@@ -19,7 +19,10 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
         if (!player || player.isObserver) return; // Observers cannot select cards
 
         const success = roomManager.selectCard(roomCode, sessionId, cardValue);
-        if (!success) return;
+        if (!success) {
+            socket.emit('error', `Invalid card value. Valid values are: ${room.cardValues.join(', ')}`);
+            return;
+        }
 
         // Notify all players that someone voted
         io.to(roomCode).emit('cardSelected', {
