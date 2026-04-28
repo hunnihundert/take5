@@ -5,6 +5,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 ## Features
 
 ### Jira Integration
+
 - **Jira Connection** - Connect your room to your Jira instance
 - **Story Import via Link** - Add Jira issues by pasting the link
 - **JQL Import** - Import multiple stories using JQL queries
@@ -15,6 +16,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **Clickable Links** - URLs in story descriptions are rendered as clickable links
 
 ### Core Features
+
 - **Real-time Sync** - All players see live updates via Socket.io
 - **Configurable Card Deck** - Moderator can choose a preset (Fibonacci, Extended Fibonacci, T-Shirt Sizes, Powers of 2) or build a custom deck; changing the deck mid-round resets all votes
 - **Custom Room Codes** - Create rooms with a custom code (3-12 chars) or auto-generated (6 chars)
@@ -35,6 +37,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **Copy Link** - One-click link copying for easy sharing
 
 ### Session Management
+
 - **Persistent Sessions** - Players survive page reloads and reconnections; full state is restored automatically
 - **Multi-tab Support** - Opening the same room in multiple tabs shows the same player (not duplicates)
 - **Short Grace Period on Tab Close** - Closing the tab voluntarily marks the player as disconnected and removes them after ~8 seconds, allowing page reloads to reconnect seamlessly
@@ -43,6 +46,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **Pre-filled Home Form** - Returning users see their name pre-filled; room code is pre-filled from the URL
 
 ### Persistence (optional)
+
 - **PostgreSQL Database** - Rooms and stories survive player disconnects
 - **Auto Hydration** - Empty rooms reload from the database when players rejoin
 - **Without Database** - Works entirely in-memory (rooms are ephemeral)
@@ -50,6 +54,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 ## Tech Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development
 - **Tailwind CSS** for styling
@@ -58,6 +63,7 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **React Context** (GameContext) for state management
 
 ### Backend
+
 - **Node.js** with Express
 - **Socket.io** for WebSocket connections
 - **TypeScript** for type safety
@@ -65,9 +71,11 @@ A modern, real-time Planning Poker application for agile teams, built with React
 - **In-Memory Storage** as fallback (no database required)
 
 ### Shared
+
 - **@taking5/shared** - Shared TypeScript types (Player, Story, RoomState, JiraConfig, CardValue, DECK_PRESETS)
 
 ### Testing
+
 - **Vitest** for unit and integration tests (client + server)
 - **React Testing Library** for hook tests
 - **Playwright** for end-to-end tests
@@ -155,6 +163,7 @@ take5/
 ## Installation
 
 ### Prerequisites
+
 - Node.js (version 18 or higher)
 - npm
 - PostgreSQL (optional, for room persistence)
@@ -181,13 +190,13 @@ cp .env.example .env
 
 Configurable variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3001` | Server port |
-| `NODE_ENV` | `development` | Environment |
-| `DATABASE_URL` | _(empty)_ | PostgreSQL connection string (optional) |
-| `ALLOWED_ORIGINS` | _(auto)_ | Comma-separated CORS origins |
-| `VITE_SOCKET_URL` | _(auto)_ | Socket.io server URL (client) |
+| Variable          | Default       | Description                             |
+| ----------------- | ------------- | --------------------------------------- |
+| `PORT`            | `3001`        | Server port                             |
+| `NODE_ENV`        | `development` | Environment                             |
+| `DATABASE_URL`    | _(empty)_     | PostgreSQL connection string (optional) |
+| `ALLOWED_ORIGINS` | _(auto)_      | Comma-separated CORS origins            |
+| `VITE_SOCKET_URL` | _(auto)_      | Socket.io server URL (client)           |
 
 ## Development
 
@@ -198,17 +207,20 @@ npm run dev
 ```
 
 This starts:
+
 - Backend server at `http://localhost:3001`
 - Frontend dev server at `http://localhost:3000`
 
 ### Start individually
 
 **Backend only:**
+
 ```bash
 npm run dev:server
 ```
 
 **Frontend only:**
+
 ```bash
 npm run dev:client
 ```
@@ -222,21 +234,27 @@ npm run test
 ```
 
 ### Server tests
+
 ```bash
 npm run test:server
 ```
+
 Uses **Vitest**. Tests room management, socket handlers, Jira integration, and the database repository (with pg-mem).
 
 ### Client tests
+
 ```bash
 npm run test:client
 ```
+
 Uses **Vitest** and **React Testing Library**. Tests hooks and context providers.
 
 ### E2E tests
+
 ```bash
 npm run test:e2e
 ```
+
 Uses **Playwright**. Tests the multi-player voting workflow in real browsers (create room, add story, vote, reveal, new round).
 
 ## Production
@@ -268,11 +286,13 @@ docker compose up -d
 The app will be available at `http://localhost:8080`. The database schema is created automatically on first boot — no manual migration step required.
 
 To stop:
+
 ```bash
 docker compose down
 ```
 
 To stop and remove the database volume:
+
 ```bash
 docker compose down -v
 ```
@@ -285,6 +305,7 @@ docker run -p 8080:8080 take5
 ```
 
 With an external PostgreSQL instance:
+
 ```bash
 docker run -p 8080:8080 -e DATABASE_URL=postgresql://user:pw@host:5432/db take5
 ```
@@ -305,6 +326,7 @@ npm run db:migrate --workspace=server
 ## Usage
 
 ### 1. Create a room
+
 1. Open the app in your browser (`http://localhost:3000`)
 2. Click "Create New Room"
 3. Enter your name
@@ -312,21 +334,25 @@ npm run db:migrate --workspace=server
 5. Share the code with your team
 
 ### 2. Join a room
+
 1. Click "Join Room"
 2. Enter your name and the room code
 3. Click "Join"
 
 **Or with a direct link:**
+
 1. Open a shared link (e.g. `http://localhost:3000?room=ABC123`)
 2. Enter only your name (room code is pre-filled)
 3. Click "Join"
 
 ### 3. Share the room
+
 - **Copy Link button**: Click "Copy Link" next to the room code inside the game room
 - The link is copied to your clipboard
 - Share the link with your team via email, chat, etc.
 
 ### 4. Playing
+
 - **Select a card**: Click one of the cards in the deck
 - **Wait**: All players see who has already voted (face-down card indicator)
 - **Auto reveal**: Cards reveal automatically when all active players have voted
@@ -337,16 +363,19 @@ npm run db:migrate --workspace=server
 - **New round**: The moderator starts a new round
 
 ### 5. Observer mode
+
 - **Enable**: Click "Observer Mode" in the header
 - **Disable**: Click "Participate" to rejoin voting
 - Observers cannot select cards and do not count toward auto-reveal
 
 ### 6. Change avatar
+
 - **Upload**: Click your avatar in the header and select an image
 - **Crop**: Adjust the crop area in the editor
 - **Remove**: Hover over the avatar and click the X icon
 
 ### 7. Throw emojis
+
 - **Open**: Right-click another player at the poker table
 - **Select**: Click "Throw Emoji" in the context menu
 - **Throw**: Choose an emoji from the picker (9 categories)
@@ -354,6 +383,7 @@ npm run db:migrate --workspace=server
 - **Recently used**: Your last 5 thrown emojis appear at the top
 
 ### 8. Configure the card deck (Moderator only)
+
 1. Click the **Deck** button in the moderator controls area
 2. Choose a preset or switch to the **Custom** input
 3. In custom mode, type a value and press Enter or comma to add it; Backspace removes the last tag
@@ -361,6 +391,7 @@ npm run db:migrate --workspace=server
 5. Click **Apply** — all clients update immediately
 
 ### 9. Transfer moderator role (Moderator only)
+
 - **Open**: Right-click another player at the poker table
 - **Select**: Click "Make Moderator" (👑) in the context menu
 - The selected player immediately becomes the new moderator
@@ -369,6 +400,7 @@ npm run db:migrate --workspace=server
 ### 10. Jira Integration (Moderator)
 
 #### Connect Jira
+
 1. Click the Jira icon in the story list
 2. Enter your Jira instance URL (e.g. `https://your-team.atlassian.net`)
 3. Enter your email address
@@ -377,11 +409,13 @@ npm run db:migrate --workspace=server
 6. Click "Connect"
 
 #### Import stories
+
 - **Via link**: Paste a Jira issue URL and press Enter
 - **Via JQL**: Advanced search with JQL queries (e.g. `sprint in openSprints()`)
 - **Manually**: Enter a description (URLs are rendered as clickable links)
 
 #### Apply story points
+
 1. A dialog appears after cards are revealed
 2. The consensus value is suggested automatically when all players agree
 3. Click "Apply" (saves locally and optionally syncs to Jira)
@@ -389,40 +423,44 @@ npm run db:migrate --workspace=server
 ## Game Rules
 
 ### Moderator
+
 - The first player to create a room becomes moderator automatically
 - If the moderator leaves, a new moderator is assigned automatically
 - The moderator can transfer the role to any other player by right-clicking them and selecting "Make Moderator"
 - Only the moderator can:
-  - Reveal cards early
-  - Start new rounds
-  - Manage stories
-  - Configure Jira
-  - Transfer the moderator role
+    - Reveal cards early
+    - Start new rounds
+    - Manage stories
+    - Configure Jira
+    - Transfer the moderator role
 
 ### Card values
+
 The moderator configures the deck before or during a session. Built-in presets:
 
-| Preset | Values |
-|--------|--------|
-| **Fibonacci** _(default)_ | 1, 2, 3, 5, 8, 13, 21 |
-| **Extended Fibonacci** | 0, ½, 1, 2, 3, 5, 8, 13, 21, ? |
-| **T-Shirt Sizes** | XS, S, M, L, XL, XXL |
-| **Powers of 2** | 1, 2, 4, 8, 16, 32 |
+| Preset                    | Values                           |
+| ------------------------- | -------------------------------- |
+| **Fibonacci** _(default)_ | 1, 2, 3, 5, 8, 13, 21            |
+| **Extended Fibonacci**    | 0, 0.5, 1, 2, 3, 5, 8, 13, 21, ? |
+| **T-Shirt Sizes**         | XS, S, M, L, XL, XXL             |
+| **Powers of 2**           | 1, 2, 4, 8, 16, 32               |
 
 Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric decks suppress the average display and the apply-points dialog.
 
 ### Voting
+
 - Each player selects exactly one card
 - Other players only see that you have voted (not which card)
 - Cards are revealed simultaneously when:
-  - ALL active players have voted (automatic), OR
-  - The moderator clicks "Reveal Cards" (manual)
+    - ALL active players have voted (automatic), OR
+    - The moderator clicks "Reveal Cards" (manual)
 
 ## API Reference
 
 ### Socket.io Events
 
 #### Client -> Server
+
 - `createRoom(playerName, roomCode?, callback)` - Create a new room (optional custom code)
 - `joinRoom({ roomCode, playerName }, callback)` - Join a room
 - `selectCard(cardValue)` - Select a card (must be a value in the room's current deck)
@@ -436,6 +474,7 @@ Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric dec
 - `leaveRoom()` - Signal intentional tab close; starts an 8-second grace period (shorter than the involuntary 60s) so page reloads reconnect transparently
 
 **Story events (moderator only):**
+
 - `addManualStory(summary)` - Add a manual story
 - `removeStory(storyId)` - Remove a story
 - `selectStory(storyId)` - Select a story for estimation
@@ -443,6 +482,7 @@ Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric dec
 - `clearStories()` - Clear all stories
 
 **Jira events (moderator only):**
+
 - `configureJira({ baseUrl, email, apiToken, storyPointsFieldId? })` - Connect Jira
 - `disconnectJira()` - Disconnect Jira
 - `addStoryByLink(url)` - Import a story via Jira link
@@ -450,6 +490,7 @@ Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric dec
 - `refreshJiraStories()` - Refresh Jira stories
 
 #### Server -> Client
+
 - `sessionCreated({ sessionId })` - New session ID assigned (stored in localStorage)
 - `roomJoined({ roomCode, player, players, stories, activeStoryId, jiraConnected, cardValues })` - Successfully joined (also sent on reconnect/new tab)
 - `playerJoined(player)` - A new player joined
@@ -467,12 +508,14 @@ Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric dec
 - `error(message)` - An error occurred
 
 **Story events:**
+
 - `storyAdded(story)` - A story was added
 - `storiesUpdated(stories)` - Story list updated
 - `storySelected({ storyId, story })` - A story was selected
 - `storyPointsApplied({ storyId, points })` - Story points applied
 
 **Jira events:**
+
 - `jiraConfigured({ baseUrl })` - Jira connected
 - `jiraDisconnected()` - Jira disconnected
 - `jiraError({ code, message })` - Jira error occurred
@@ -480,7 +523,9 @@ Custom decks (up to 20 values, 8 chars each) are also supported. Non-numeric dec
 ## Troubleshooting
 
 ### Port already in use
+
 **Frontend** - Change in `client/vite.config.ts`:
+
 ```typescript
 server: {
   port: 3002, // new port
@@ -488,16 +533,19 @@ server: {
 ```
 
 **Backend** - Set environment variable:
+
 ```bash
 PORT=3003 npm run dev:server
 ```
 
 ### Connection issues
+
 - Make sure both servers are running
 - Check the browser console for errors
 - Ensure no firewall is blocking the connection
 
 ### Build errors
+
 ```bash
 # Reinstall dependencies
 rm -rf node_modules client/node_modules server/node_modules shared/node_modules

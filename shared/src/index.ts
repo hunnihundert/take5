@@ -1,10 +1,22 @@
 export type CardValue = string;
 
 export const DECK_PRESETS = {
-    fibonacci:    { label: 'Fibonacci',         values: ['1', '2', '3', '5', '8', '13', '21'] },
-    modFibonacci: { label: 'Extended Fibonacci', values: ['0', '½', '1', '2', '3', '5', '8', '13', '21', '?'] },
-    tshirt:       { label: 'T-Shirt Sizes',      values: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
-    powersOf2:    { label: 'Powers of 2',        values: ['1', '2', '4', '8', '16', '32'] },
+    fibonacci: {
+        label: "Fibonacci",
+        values: ["1", "2", "3", "5", "8", "13", "21"],
+    },
+    modFibonacci: {
+        label: "Extended Fibonacci",
+        values: ["0", "0.5", "1", "2", "3", "5", "8", "13", "21", "?"],
+    },
+    tshirt: {
+        label: "T-Shirt Sizes",
+        values: ["XS", "S", "M", "L", "XL", "XXL"],
+    },
+    powersOf2: {
+        label: "Powers of 2",
+        values: ["1", "2", "4", "8", "16", "32"],
+    },
 } as const;
 
 export const DEFAULT_CARD_VALUES: string[] = [...DECK_PRESETS.fibonacci.values];
@@ -17,12 +29,12 @@ export const DECK_LIMITS = {
 
 export interface Story {
     id: string;
-    key?: string;           // Jira issue key (e.g., "PROJ-123")
+    key?: string; // Jira issue key (e.g., "PROJ-123")
     summary: string;
     storyPoints?: number;
-    url?: string;           // Jira issue URL
-    isManual: boolean;      // true if added manually, false if from Jira
-    voted: boolean;         // true if story has been estimated
+    url?: string; // Jira issue URL
+    isManual: boolean; // true if added manually, false if from Jira
+    voted: boolean; // true if story has been estimated
 }
 
 export interface Player {
