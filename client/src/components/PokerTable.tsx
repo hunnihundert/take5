@@ -119,6 +119,11 @@ const PokerTable = ({ players, currentPlayerId, revealed, onPlayerRightClick, pl
                       <div className="text-6xl font-bold text-primary-700">{average}</div>
                       <p className="text-xs text-gray-500 mt-2">{playersWithCards.length} votes</p>
                     </div>
+                  ) : playersWithCards.length > 0 ? (
+                    <div className="bg-white/95 rounded-2xl shadow-2xl p-6 backdrop-blur-sm border-2 border-gray-300">
+                      <p className="text-sm text-gray-500 mb-1">No numeric average</p>
+                      <p className="text-xs text-gray-400">{playersWithCards.length} votes</p>
+                    </div>
                   ) : (
                     <div className="bg-white/95 rounded-2xl shadow-2xl p-6 backdrop-blur-sm border-2 border-gray-300">
                       <p className="text-gray-600">No votes</p>
