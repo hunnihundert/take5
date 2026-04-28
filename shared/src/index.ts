@@ -1,4 +1,13 @@
-export type CardValue = '1' | '2' | '3' | '5' | '8' | '13';
+export type CardValue = string;
+
+export const DECK_PRESETS = {
+    fibonacci:    { label: 'Fibonacci',         values: ['1', '2', '3', '5', '8', '13', '21'] },
+    modFibonacci: { label: 'Extended Fibonacci', values: ['0', '½', '1', '2', '3', '5', '8', '13', '21', '?'] },
+    tshirt:       { label: 'T-Shirt Sizes',      values: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+    powersOf2:    { label: 'Powers of 2',        values: ['1', '2', '4', '8', '16', '32'] },
+} as const;
+
+export const DEFAULT_CARD_VALUES: string[] = [...DECK_PRESETS.fibonacci.values];
 
 export interface Story {
     id: string;
@@ -29,6 +38,7 @@ export interface RoomState {
     stories: Story[];
     activeStory: Story | null;
     jiraConnected: boolean;
+    cardValues: string[];
 }
 
 export interface JiraConfig {

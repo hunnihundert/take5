@@ -1,11 +1,14 @@
 import { SocketHandler } from './types';
 import { CardValue } from '../types';
-import { LIMITS, isValidString } from '../utils/validation';
+import { LIMITS, isValidString, validateCardValues } from '../utils/validation';
 
 export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
 
-    socket.on('selectCard', (cardValue: CardValue) => {
+    socket.on('selectCard', (rawValue: unknown) => {
+        if (typeof rawValue !== 'string' && typeof rawValue !== 'number') return;
+        const cardValue: CardValue = String(rawValue);
+
         const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
         if (!roomCode) return;
 
@@ -104,5 +107,30 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
         if (resetRoom) {
             io.to(roomCode).emit('newRound');
         }
+    });
+
+    socket.on('setDeckConfig', (cardValuesPayload: unknown) => {
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
+        if (!roomCode) return;
+
+        const room = roomManager.getRoom(roomCode);
+        if (!room) return;
+
+        const player = room.players.get(sessionId);
+        if (!player || !player.isModerator) return;
+
+        const validation = validateCardValues(cardValuesPayload);
+        if (!validation.valid) {
+            socket.emit('error', validation.error);
+            return;
+        }
+
+        const result = roomManager.updateDeckConfig(roomCode, validation.values);
+        if (!result) return;
+
+        if (result.clearedVotes) {
+            io.to(roomCode).emit('newRound');
+        }
+        io.to(roomCode).emit('deckConfigUpdated', { cardValues: validation.values });
     });
 };

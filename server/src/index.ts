@@ -113,6 +113,7 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
           stories: room.stories,
           activeStoryId: room.activeStoryId ?? null,
           jiraConnected: room.jiraConfig !== undefined,
+          cardValues: room.cardValues,
         });
 
         if (wasDisconnected) {

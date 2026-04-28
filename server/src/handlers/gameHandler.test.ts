@@ -60,8 +60,8 @@ describe('Game Handler Integration', () => {
 
     const players = await cardsRevealedPromise;
     expect(players).toHaveLength(2);
-    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe(3);
-    expect(players.find(p => p.id === client2.sessionId).selectedCard).toBe(5);
+    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe('3');
+    expect(players.find(p => p.id === client2.sessionId).selectedCard).toBe('5');
   });
 
   it('should not allow non-moderators to manually reveal cards', async () => {
@@ -114,7 +114,7 @@ describe('Game Handler Integration', () => {
 
     const players = await cardsRevealedPromise;
     expect(players).toBeDefined();
-    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe(8);
+    expect(players.find(p => p.id === client1.sessionId).selectedCard).toBe('8');
   });
 
   describe('throwEmoji validation', () => {
@@ -150,9 +150,10 @@ describe('Game Handler Integration', () => {
     const allClients = [client1, client2, ...extraClients];
     const cardsRevealedPromise = waitForEvent<any[]>(client1, 'cardsRevealed');
 
-    // 2. All vote at once
+    // 2. All vote at once with valid deck values
+    const deckValues = ['1', '2', '3', '5', '8', '13', '21'];
     allClients.forEach((c, i) => {
-      c.emit('selectCard', i % 13);
+      c.emit('selectCard', deckValues[i % deckValues.length]);
     });
 
     const revealedPlayers = await cardsRevealedPromise;

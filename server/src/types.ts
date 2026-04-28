@@ -1,7 +1,7 @@
-import { Story, JiraConfig, Player, RoomState, CardValue } from '@taking5/shared';
+import { Story, JiraConfig, Player, RoomState, CardValue, DEFAULT_CARD_VALUES } from '@taking5/shared';
 
 // Re-export common types
-export { Story, JiraConfig, Player, RoomState, CardValue };
+export { Story, JiraConfig, Player, RoomState, CardValue, DEFAULT_CARD_VALUES };
 
 export interface Room {
   code: string;
@@ -11,10 +11,12 @@ export interface Room {
   stories: Story[];
   activeStoryId?: string;
   jiraConfig?: JiraConfig;
+  cardValues: string[];
 }
 
 export interface ServerToClientEvents {
-  roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId: string | null; jiraConnected: boolean }) => void;
+  roomJoined: (data: { roomCode: string; player: Player; players: Player[]; stories: Story[]; activeStoryId: string | null; jiraConnected: boolean; cardValues: string[] }) => void;
+  deckConfigUpdated: (data: { cardValues: string[] }) => void;
   playerJoined: (player: Player) => void;
   playerLeft: (data: { playerId: string; newModeratorId?: string }) => void;
   moderatorTransferred: (data: { fromPlayerId: string; toPlayerId: string }) => void;
@@ -45,6 +47,7 @@ export interface ClientToServerEvents {
   ) => void;
   joinRoom: (data: { roomCode: string; playerName: string }, callback: (response: { success: boolean; error?: string }) => void) => void;
   selectCard: (cardValue: CardValue) => void;
+  setDeckConfig: (cardValues: string[]) => void;
   revealCards: () => void;
   startNewRound: () => void;
   toggleObserver: () => void;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { Socket } from "socket.io-client";
-import { Player, RoomState, Story } from "../types";
+import { Player, RoomState, Story, DEFAULT_CARD_VALUES } from "../types";
 
 interface UseRoomSocketProps {
     socket: Socket | null;
@@ -25,6 +25,7 @@ export const useRoomSocket = ({
                 stories,
                 activeStoryId,
                 jiraConnected,
+                cardValues,
             }: {
                 roomCode: string;
                 player: Player;
@@ -32,6 +33,7 @@ export const useRoomSocket = ({
                 stories: Story[];
                 activeStoryId: string | null;
                 jiraConnected: boolean;
+                cardValues?: string[];
             }) => {
                 const activeStory = activeStoryId
                     ? stories.find((s: Story) => s.id === activeStoryId) || null
@@ -44,6 +46,7 @@ export const useRoomSocket = ({
                     stories: stories || [],
                     activeStory,
                     jiraConnected: jiraConnected || false,
+                    cardValues: cardValues ?? DEFAULT_CARD_VALUES,
                 });
                 setInRoom(true);
 

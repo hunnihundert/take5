@@ -4,14 +4,14 @@ interface CardDeckProps {
   selectedCard: CardValue | null;
   onSelectCard: (cardValue: CardValue) => void;
   disabled: boolean;
+  cardValues: string[];
 }
 
-const CARD_VALUES: CardValue[] = ['1', '2', '3', '5', '8', '13'];
-
-const CardDeck = ({ selectedCard, onSelectCard, disabled }: CardDeckProps) => {
+const CardDeck = ({ selectedCard, onSelectCard, disabled, cardValues }: CardDeckProps) => {
+  const colCount = Math.min(cardValues.length, 6);
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-      {CARD_VALUES.map((value) => {
+    <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
+      {cardValues.map((value) => {
         const isSelected = selectedCard === value;
         return (
           <button

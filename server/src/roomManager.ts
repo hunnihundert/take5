@@ -1,4 +1,4 @@
-import { Room, Player, CardValue, Story, JiraConfig } from './types';
+import { Room, Player, CardValue, Story, JiraConfig, DEFAULT_CARD_VALUES } from './types';
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
 import { RoomRepository, DatabaseError } from './db/repository';
@@ -86,7 +86,8 @@ export class RoomManager {
       createdAt: new Date(),
       stories: [],
       activeStoryId: undefined,
-      jiraConfig: undefined
+      jiraConfig: undefined,
+      cardValues: [...DEFAULT_CARD_VALUES]
     };
 
     // Persist to DB first
@@ -127,6 +128,7 @@ export class RoomManager {
             stories: dbRoom.stories,
             activeStoryId: dbRoom.activeStoryId ?? undefined,
             jiraConfig: dbRoom.jiraConfig,
+            cardValues: [...DEFAULT_CARD_VALUES],
           };
           this.rooms.set(normalizedCode, room);
           logger.info(`Room ${normalizedCode} hydrated from database`);
@@ -211,9 +213,24 @@ export class RoomManager {
     const player = room.players.get(playerId);
     if (!player) return false;
 
+    if (!room.cardValues.includes(cardValue)) return false;
+
     player.selectedCard = cardValue;
     player.hasVoted = true;
     return true;
+  }
+
+  updateDeckConfig(roomCode: string, cardValues: string[]): { clearedVotes: boolean } | null {
+    const room = this.getRoom(roomCode);
+    if (!room) return null;
+
+    const anyVotes = Array.from(room.players.values()).some(p => p.hasVoted) || room.revealed;
+    if (anyVotes) {
+      this.startNewRound(roomCode);
+    }
+
+    room.cardValues = cardValues;
+    return { clearedVotes: anyVotes };
   }
 
   revealCards(roomCode: string): Room | null {

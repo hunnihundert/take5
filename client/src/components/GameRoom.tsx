@@ -11,6 +11,7 @@ import ActiveStoryBanner from './ActiveStoryBanner';
 import JiraConfigModal from './JiraConfigModal';
 import JqlImportSection from './JqlImportSection';
 import ApplyPointsDialog from './ApplyPointsDialog';
+import DeckConfigModal from './DeckConfigModal';
 import { useGameContext } from '../context/GameContext';
 
 const GameRoom = () => {
@@ -25,6 +26,7 @@ const GameRoom = () => {
     transferModerator,
     incomingEmojis,
     removeIncomingEmoji,
+    setDeckConfig,
     addManualStory,
     removeStory,
     selectStory,
@@ -37,7 +39,7 @@ const GameRoom = () => {
     refreshJiraStories
   } = useGameContext();
 
-  const { roomCode, currentPlayer, players, revealed, stories, activeStory, jiraConnected } = roomState;
+  const { roomCode, currentPlayer, players, revealed, stories, activeStory, jiraConnected, cardValues } = roomState;
   const [copied, setCopied] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
@@ -46,6 +48,7 @@ const GameRoom = () => {
   // Jira modal state
   const [showJiraConfig, setShowJiraConfig] = useState(false);
   const [showApplyPoints, setShowApplyPoints] = useState(false);
+  const [showDeckConfig, setShowDeckConfig] = useState(false);
   const [lastRevealedState, setLastRevealedState] = useState(false);
 
   // Emoji throwing state
@@ -72,9 +75,10 @@ const GameRoom = () => {
     });
   }, [incomingEmojis, addEmoji, removeIncomingEmoji]);
 
-  // Show ApplyPointsDialog when cards are revealed with an active story
+  // Show ApplyPointsDialog when cards are revealed with an active story (only for numeric decks)
   useEffect(() => {
-    if (revealed && !lastRevealedState && activeStory && currentPlayer?.isModerator) {
+    const deckHasNumericValues = cardValues.some(v => isFinite(parseFloat(v)));
+    if (revealed && !lastRevealedState && activeStory && currentPlayer?.isModerator && deckHasNumericValues) {
       setShowApplyPoints(true);
     }
     setLastRevealedState(revealed);
@@ -349,6 +353,7 @@ const GameRoom = () => {
                 selectedCard={currentPlayer?.selectedCard || null}
                 onSelectCard={selectCard}
                 disabled={revealed}
+                cardValues={cardValues}
               />
             </div>
           )}
@@ -390,6 +395,16 @@ const GameRoom = () => {
                     Start new round
                   </button>
                 )}
+                <button
+                  onClick={() => setShowDeckConfig(true)}
+                  className="flex items-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition duration-200"
+                  title="Configure card deck"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-medium">Deck</span>
+                </button>
               </div>
             </div>
           )}
@@ -446,9 +461,19 @@ const GameRoom = () => {
         story={activeStory}
         players={players}
         revealed={revealed}
+        cardValues={cardValues}
         onApplyPoints={applyStoryPoints}
         onSkip={() => setShowApplyPoints(false)}
         onClose={() => setShowApplyPoints(false)}
+      />
+
+      {/* Deck Config Modal */}
+      <DeckConfigModal
+        isOpen={showDeckConfig}
+        currentCardValues={cardValues}
+        hasActiveVotes={players.some(p => p.hasVoted)}
+        onSave={setDeckConfig}
+        onClose={() => setShowDeckConfig(false)}
       />
     </div>
   );
