@@ -224,16 +224,16 @@ export class RoomManager {
     const room = this.getRoom(roomCode);
     if (!room) return null;
 
+    // Persist to DB before mutating memory so a failed write leaves state consistent
+    if (this.repository) {
+      await this.repository.updateRoomCardValues(roomCode, cardValues);
+    }
+
     const anyVotes = Array.from(room.players.values()).some(p => p.hasVoted) || room.revealed;
     if (anyVotes) {
       this.startNewRound(roomCode);
     }
-
     room.cardValues = cardValues;
-
-    if (this.repository) {
-      await this.repository.updateRoomCardValues(roomCode, cardValues);
-    }
 
     return { clearedVotes: anyVotes };
   }

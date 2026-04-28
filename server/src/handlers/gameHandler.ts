@@ -128,12 +128,17 @@ export const gameHandler: SocketHandler = (io, socket, roomManager, sessionManag
             return;
         }
 
-        const result = await roomManager.updateDeckConfig(roomCode, validation.values);
-        if (!result) return;
+        try {
+            const result = await roomManager.updateDeckConfig(roomCode, validation.values);
+            if (!result) return;
 
-        if (result.clearedVotes) {
-            io.to(roomCode).emit('newRound');
+            if (result.clearedVotes) {
+                io.to(roomCode).emit('newRound');
+            }
+            io.to(roomCode).emit('deckConfigUpdated', { cardValues: validation.values });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            socket.emit('error', message);
         }
-        io.to(roomCode).emit('deckConfigUpdated', { cardValues: validation.values });
     });
 };
