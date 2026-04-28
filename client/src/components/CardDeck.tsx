@@ -7,10 +7,19 @@ interface CardDeckProps {
   cardValues: string[];
 }
 
+const SM_COLS: Record<number, string> = {
+  1: 'sm:grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
+  5: 'sm:grid-cols-5',
+  6: 'sm:grid-cols-6',
+};
+
 const CardDeck = ({ selectedCard, onSelectCard, disabled, cardValues }: CardDeckProps) => {
-  const colCount = Math.min(cardValues.length, 6);
+  const smCols = SM_COLS[Math.min(cardValues.length, 6)] ?? 'sm:grid-cols-6';
   return (
-    <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
+    <div className={`grid grid-cols-3 ${smCols} gap-4`}>
       {cardValues.map((value) => {
         const isSelected = selectedCard === value;
         return (
