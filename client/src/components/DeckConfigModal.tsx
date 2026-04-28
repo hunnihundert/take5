@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { DECK_PRESETS, DEFAULT_CARD_VALUES } from '../types';
+import { DECK_PRESETS, DEFAULT_CARD_VALUES, DECK_LIMITS } from '../types';
 
 interface DeckConfigModalProps {
   isOpen: boolean;
@@ -10,8 +10,7 @@ interface DeckConfigModalProps {
 }
 
 const PRESETS = Object.entries(DECK_PRESETS).map(([key, preset]) => ({ key, ...preset }));
-const MAX_VALUES = 20;
-const MAX_VALUE_LENGTH = 8;
+const { maxValues: MAX_VALUES, maxValueLength: MAX_VALUE_LENGTH } = DECK_LIMITS;
 
 const DeckConfigModal = ({ isOpen, currentCardValues, hasActiveVotes, onSave, onClose }: DeckConfigModalProps) => {
   const [values, setValues] = useState<string[]>([...currentCardValues]);

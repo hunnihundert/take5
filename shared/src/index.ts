@@ -9,6 +9,12 @@ export const DECK_PRESETS = {
 
 export const DEFAULT_CARD_VALUES: string[] = [...DECK_PRESETS.fibonacci.values];
 
+export const DECK_LIMITS = {
+    minValues: 1,
+    maxValues: 20,
+    maxValueLength: 8,
+} as const;
+
 export interface Story {
     id: string;
     key?: string;           // Jira issue key (e.g., "PROJ-123")
