@@ -25,8 +25,10 @@ const ApplyPointsDialog = ({
 }: ApplyPointsDialogProps) => {
   const [selectedPoints, setSelectedPoints] = useState<number | null>(null);
 
-  // Only numeric card values can be applied as story points
-  const numericCardValues = cardValues.filter(v => isFinite(parseFloat(v)));
+  const toNum = (v: string) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+  // Only strictly numeric card values can be applied as story points
+  const numericCardValues = cardValues.filter(v => toNum(v) !== null);
 
   // Calculate consensus using string equality (works for any card type)
   const activePlayers = players.filter(p => !p.isObserver && p.hasVoted);
@@ -34,12 +36,12 @@ const ApplyPointsDialog = ({
   const uniqueCards = [...new Set(selectedCards)];
   const hasConsensus = uniqueCards.length === 1 && selectedCards.length > 0;
   const consensusCard = hasConsensus ? uniqueCards[0] : null;
-  const consensusValue = consensusCard !== null && isFinite(parseFloat(consensusCard!)) ? parseFloat(consensusCard!) : null;
+  const consensusValue = consensusCard != null ? toNum(consensusCard) : null;
 
-  // Calculate average over numeric votes only
+  // Calculate average over strictly numeric votes only
   const numericVotes = activePlayers
-    .map(p => parseFloat(p.selectedCard || ''))
-    .filter(v => isFinite(v));
+    .map(p => toNum(p.selectedCard ?? ''))
+    .filter((n): n is number => n !== null);
   const average = numericVotes.length > 0
     ? Math.round(numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length)
     : null;
@@ -47,14 +49,14 @@ const ApplyPointsDialog = ({
   // Find nearest card value for average
   const nearestValue = average !== null && numericCardValues.length > 0
     ? numericCardValues.reduce((prev, curr) =>
-        Math.abs(parseFloat(curr) - average) < Math.abs(parseFloat(prev) - average) ? curr : prev
+        Math.abs(toNum(curr)! - average) < Math.abs(toNum(prev)! - average) ? curr : prev
       )
     : null;
 
   // Reset selected points when dialog opens or story changes
   useEffect(() => {
     if (isOpen && story) {
-      setSelectedPoints(consensusValue ?? (nearestValue !== null ? parseFloat(nearestValue) : null));
+      setSelectedPoints(consensusValue ?? (nearestValue !== null ? toNum(nearestValue) : null));
     }
   }, [isOpen, story?.id, consensusValue, nearestValue]);
 
@@ -134,9 +136,9 @@ const ApplyPointsDialog = ({
               {numericCardValues.map((value) => (
                 <button
                   key={value}
-                  onClick={() => setSelectedPoints(parseFloat(value))}
+                  onClick={() => setSelectedPoints(toNum(value))}
                   className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
-                    selectedPoints === parseFloat(value)
+                    selectedPoints === toNum(value)
                       ? 'bg-primary-600 text-white shadow-md scale-105'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
