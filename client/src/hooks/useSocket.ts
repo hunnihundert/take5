@@ -46,6 +46,7 @@ export const useSocket = () => {
       // it on restore, and a surviving page is re-seated seamlessly (the auth
       // callback re-sends the session ID and this tab's room).
       if (reason === 'io server disconnect') {
+        clearTimeout(reconnectTimer); // at most one pending reconnect
         reconnectTimer = setTimeout(() => {
           leaveEmitted = false; // page is still alive — a future unload must announce itself again
           socketInstance.connect();
