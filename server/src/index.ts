@@ -13,7 +13,7 @@ import { jiraHandler } from './handlers/jiraHandler';
 import { initDatabase, isDatabaseEnabled, syncSchema } from './db';
 import { RoomRepository } from './db/repository';
 import { logger } from './utils/logger';
-import { CAPS } from './utils/validation';
+import { CAPS, ROOM_CODE_REGEX } from './utils/validation';
 
 export async function createServerApp(options?: { disconnectGraceMs?: number; voluntaryDisconnectGraceMs?: number }) {
   const app = express();
@@ -95,19 +95,30 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
       socket.emit('sessionCreated', { sessionId });
     }
 
-    // Handle reconnection: if session has an active room, rejoin automatically
-    const sessionInfo = sessionManager.getSessionInfo(sessionId);
-    if (sessionInfo?.roomCode) {
-      const wasDisconnected = sessionManager.cancelDisconnectTimer(sessionId);
-      const room = roomManager.getRoom(sessionInfo.roomCode);
+    // Handle reconnection. The handshake carries the room code from the tab's
+    // URL; only that room is auto-rejoined. A tab pointed at a different room
+    // (or the home page) must not be dragged into another room the session is
+    // already part of — it shows the join form instead.
+    // The handshake value is untrusted; cap its length before normalizing and
+    // require the canonical format — anything else can't name a real room.
+    const rawRequestedRoom = socket.handshake.auth?.roomCode;
+    const candidate = typeof rawRequestedRoom === 'string' && rawRequestedRoom.length <= 64
+      ? rawRequestedRoom.trim().toUpperCase()
+      : '';
+    const requestedRoom = ROOM_CODE_REGEX.test(candidate) ? candidate : undefined;
+
+    if (requestedRoom && sessionManager.isSessionInRoom(sessionId, requestedRoom)) {
+      const wasDisconnected = sessionManager.cancelDisconnectTimer(sessionId, requestedRoom);
+      const room = roomManager.getRoom(requestedRoom);
 
       if (room && room.players.has(sessionId)) {
-        socket.join(sessionInfo.roomCode);
+        sessionManager.bindSocketToRoom(socket.id, room.code);
+        socket.join(room.code);
 
         // Send full state to the reconnected/new-tab socket
         const player = room.players.get(sessionId)!;
         socket.emit('roomJoined', {
-          roomCode: sessionInfo.roomCode,
+          roomCode: room.code,
           player,
           players: roomManager.getPlayersArray(room),
           stories: room.stories,
@@ -118,12 +129,12 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
 
         if (wasDisconnected) {
           // Notify others the player is back
-          socket.to(sessionInfo.roomCode).emit('playerReconnected', { playerId: sessionId });
-          logger.info(`Session ${sessionId} reconnected to room ${sessionInfo.roomCode}`);
+          socket.to(room.code).emit('playerReconnected', { playerId: sessionId });
+          logger.info(`Session ${sessionId} reconnected to room ${room.code}`);
         }
       } else {
         // Room or player no longer exists — clear stale session room
-        sessionManager.clearSessionRoom(sessionId);
+        sessionManager.clearSessionRoom(sessionId, requestedRoom);
       }
     }
 

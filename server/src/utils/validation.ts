@@ -22,6 +22,8 @@ export const LIMITS = {
   deckConfig: DECK_LIMITS,
 };
 
+export const ROOM_CODE_REGEX = new RegExp(`^[A-Z0-9]{${LIMITS.roomCode.min},${LIMITS.roomCode.max}}$`);
+
 export function isValidString(v: unknown, min: number, max: number): v is string {
   return typeof v === 'string' && v.length >= min && v.length <= max;
 }

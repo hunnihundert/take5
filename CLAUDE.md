@@ -64,7 +64,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 
 ### State Management
 
-- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set). `SessionManager` tracks session↔socket mappings and 60-second disconnect grace period timers.
+- **Backend:** In-memory `Map<string, Room>` in `RoomManager` class. Optionally persists rooms/stories to PostgreSQL via Drizzle ORM (enabled when `DATABASE_URL` is set). `SessionManager` tracks session↔socket mappings, per-tab socket↔room bindings, and per-(session, room) disconnect grace period timers.
 - **Frontend:** React Context (`GameContext`) dispatching to specialized socket hooks (`useRoomSocket`, `useGameSocket`, `useStorySocket`, `useJiraSocket`). Includes 10-minute heartbeat for Render.com keep-alive. Player name and avatar persisted in `localStorage`.
 
 ### Key Files
@@ -128,8 +128,8 @@ Socket.io handles all game state synchronization. Key event patterns:
 - **Name uniqueness:** Duplicate player names are rejected per room
 - **Session identity:** `Player.id` is a server-generated UUID session ID (not socket.id); stored in client `localStorage` as `take5_sessionId`
 - **Voluntary disconnect:** Client emits `leaveRoom` on `beforeunload`; server starts an 8-second grace period (`voluntaryDisconnectGraceMs`). Since `beforeunload` also fires on page reload, the short timer lets reloads reconnect before expiry while still removing the player promptly on a true tab close. The subsequent `disconnect` event skips the 60s involuntary timer when a voluntary timer is already running.
-- **Grace period:** On involuntary disconnect (network drop, crash), player removal is delayed 60 seconds; reconnecting within that window restores full state seamlessly
-- **Multi-tab:** Multiple tabs with the same session ID are treated as one player; each receives full state via `roomJoined`
+- **Grace period:** On involuntary disconnect (network drop, crash), player removal is delayed 60 seconds; reconnecting within that window restores full state seamlessly. Timers are tracked per (session, room), so losing the last tab of one room never affects the session's other rooms.
+- **Multi-tab / multi-room:** Each socket (tab) is bound to at most one room; a session can sit in several rooms at once via different tabs. The socket handshake carries the tab's `?room=` URL param, and the server auto-rejoins only that room — a tab pointed at a different room (or the home page) shows the join form instead of being dragged into the session's previous room. Tabs of the same session in the same room are treated as one player; each receives full state via `roomJoined`.
 - **Avatar/name persistence:** Stored in `localStorage` (`take5_avatarUrl`, `take5_playerName`); avatar auto-sent after joining, name pre-fills Home form
 - **Jira Integration:** Stories can be imported via URL or JQL; story points sync back to Jira
 - **Clickable links:** URLs in manual story summaries render as clickable links

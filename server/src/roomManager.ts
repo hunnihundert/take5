@@ -2,7 +2,7 @@ import { Room, Player, CardValue, Story, JiraConfig, DEFAULT_CARD_VALUES } from 
 import { randomUUID } from 'crypto';
 import { logger } from './utils/logger';
 import { RoomRepository, DatabaseError } from './db/repository';
-import { CAPS } from './utils/validation';
+import { CAPS, ROOM_CODE_REGEX } from './utils/validation';
 
 export type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -52,9 +52,7 @@ export class RoomManager {
     if (roomCode && roomCode.trim().length > 0) {
       code = this.normalizeRoomCode(roomCode.trim());
 
-      // Validation: 3-12 alphanumeric characters
-      const codeRegex = /^[A-Z0-9]{3,12}$/;
-      if (!codeRegex.test(code)) {
+      if (!ROOM_CODE_REGEX.test(code)) {
         return { success: false, error: 'Invalid room code. Use 3-12 alphanumeric characters.' };
       }
 
