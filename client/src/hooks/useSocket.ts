@@ -31,9 +31,26 @@ export const useSocket = () => {
       setConnected(true);
     });
 
-    socketInstance.on('disconnect', () => {
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+
+    socketInstance.on('disconnect', (reason) => {
       console.log('Disconnected from server');
       setConnected(false);
+
+      // The server force-disconnects this socket in the leaveRoom flow, and
+      // socket.io does not auto-reconnect after a server-initiated disconnect.
+      // If the page is really going away that is moot — but when the unload
+      // was cancelled (download click, aborted navigation) or the page sits in
+      // the back/forward cache, the tab is still alive. Reconnect after a
+      // short delay: a dying page never fires the timer, a frozen page fires
+      // it on restore, and a surviving page is re-seated seamlessly (the auth
+      // callback re-sends the session ID and this tab's room).
+      if (reason === 'io server disconnect') {
+        reconnectTimer = setTimeout(() => {
+          leaveEmitted = false; // page is still alive — a future unload must announce itself again
+          socketInstance.connect();
+        }, 250);
+      }
     });
 
     socketInstance.on('sessionCreated', ({ sessionId: newId }: { sessionId: string }) => {
@@ -63,6 +80,7 @@ export const useSocket = () => {
     return () => {
       window.removeEventListener('beforeunload', emitLeaveRoom);
       window.removeEventListener('pagehide', emitLeaveRoom);
+      clearTimeout(reconnectTimer); // don't resurrect a socket we're closing
       socketInstance.close();
     };
   }, []);

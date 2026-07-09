@@ -681,6 +681,60 @@ describe('Room Handler Integration', () => {
       tab.disconnect();
     });
 
+    it('should not let a cancelled unload leave a stale voluntary flag (involuntary grace preserved)', async () => {
+      const roomCode = `MROOM${testIndex}A`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        client2.emit('joinRoom', { roomCode, playerName: 'Player 2' }, () => resolve());
+      });
+
+      // Second tab of client2's session in the same room
+      const tabB = await openTab(client2.sessionId, roomCode);
+      await tabB.roomJoined;
+
+      // Tab A (client2) hits a cancelled unload: it emits leaveRoom but the
+      // page survives. The server must force-disconnect the socket so the
+      // voluntary flag is consumed immediately instead of going stale.
+      const reasonA = await new Promise<string>((resolve) => {
+        client2.once('disconnect', resolve);
+        client2.emit('leaveRoom');
+      });
+      expect(reasonA).toBe('io server disconnect');
+
+      // The seat is untouched — tab B still shows the room
+      const seatLost = Promise.race([
+        new Promise<'event'>((resolve) => {
+          client1.once('playerDisconnected', () => resolve('event'));
+          client1.once('playerLeft', () => resolve('event'));
+        }),
+        new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250)),
+      ]);
+      expect(await seatLost).toBe('timeout');
+
+      // The surviving tab A reconnects (what the client does after its short delay)
+      const tabA2 = await openTab(client2.sessionId, roomCode);
+      await tabA2.roomJoined;
+
+      // Tab B closes for real
+      const reasonB = await new Promise<string>((resolve) => {
+        tabB.once('disconnect', resolve);
+        tabB.emit('leaveRoom');
+      });
+      expect(reasonB).toBe('io server disconnect');
+
+      // Tab A now drops involuntarily. It never announced a voluntary leave on
+      // its current socket, so it must get the involuntary grace period
+      // (300ms in tests), not the voluntary one (100ms).
+      const playerLeftPromise = waitForEvent<any>(client1, 'playerLeft');
+      const t0 = Date.now();
+      tabA2.disconnect();
+      const left = await playerLeftPromise;
+      expect(left.playerId).toBe(client2.sessionId);
+      expect(Date.now() - t0).toBeGreaterThanOrEqual(250);
+    }, 10_000);
+
     it('should reject a second room on the same tab (socket already bound)', async () => {
       const roomA = `MROOM${testIndex}A`;
       const roomB = `MROOM${testIndex}B`;

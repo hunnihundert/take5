@@ -208,7 +208,17 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         sessionManager.markSocketVoluntaryLeave(socket.id);
 
         const socketsInRoom = sessionManager.getSocketIdsInRoom(sessionId, roomCode);
-        if (socketsInRoom.size > 1) return; // other tabs still show this room — last disconnect handles it
+        if (socketsInRoom.size > 1) {
+            // Other tabs still show this room, so no grace period is needed —
+            // but still tear this socket down so the voluntary flag is consumed
+            // by the disconnect handler right away. Leaving the socket connected
+            // would let the flag go stale when the unload is cancelled (e.g. a
+            // download click), and a much later involuntary disconnect of this
+            // tab would then wrongly get the short voluntary grace period.
+            socket.leave(roomCode);
+            socket.disconnect(true);
+            return;
+        }
 
         // Notify others the player is temporarily gone (may come back on reload)
         socket.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
