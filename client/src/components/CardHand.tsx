@@ -32,7 +32,7 @@ const CardHand = ({ selectedCard, onSelectCard, disabled, cardValues }: CardHand
     // slightly below the baseline; everything else moves up, not down.
     <div
       role="group"
-      aria-label="Card deck"
+      aria-label="Card hand"
       className="flex justify-center items-end overflow-x-auto pt-8 pb-2.5 px-6"
     >
       {cardValues.map((value, i) => {
@@ -47,7 +47,7 @@ const CardHand = ({ selectedCard, onSelectCard, disabled, cardValues }: CardHand
             style={{
               transform: `rotate(${rotate}deg) translateY(${-lift}px)`,
               transformOrigin: 'bottom center',
-              zIndex: isSelected ? 50 : focusedIndex === i ? 40 : i,
+              zIndex: focusedIndex === i ? 60 : isSelected ? 50 : i,
               marginLeft: i === 0 ? 0 : -overlapPx,
             }}
           >

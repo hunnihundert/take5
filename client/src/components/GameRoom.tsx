@@ -60,6 +60,9 @@ const GameRoom = () => {
   const handBarSentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Without the API (JSDOM in tests, very old browsers) the bar simply
+    // stays full width, which is a safe fallback.
+    if (!('IntersectionObserver' in window)) return;
     const sentinel = handBarSentinelRef.current;
     if (!sentinel) return;
     const observer = new IntersectionObserver(
