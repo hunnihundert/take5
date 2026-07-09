@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, ChangeEvent } from 'react';
 import { AVATAR_LIMITS, Player } from '../types';
 import PokerTable from './PokerTable';
-import CardDeck from './CardDeck';
+import CardHand from './CardHand';
 import AvatarEditor from './AvatarEditor';
 import PlayerContextMenu from './PlayerContextMenu';
 import EmojiPicker from './EmojiPicker';
@@ -345,26 +345,11 @@ const GameRoom = () => {
           </div>
         </div>
 
-        {/* Card Selection and Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Card Deck */}
-          {!revealed && !currentPlayer?.isObserver && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Choose your card
-              </h2>
-              <CardDeck
-                selectedCard={currentPlayer?.selectedCard || null}
-                onSelectCard={selectCard}
-                disabled={revealed}
-                cardValues={cardValues}
-              />
-            </div>
-          )}
-
+        {/* Controls */}
+        <div className="grid grid-cols-1 gap-6">
           {/* Observer Message */}
           {!revealed && currentPlayer?.isObserver && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="text-center py-8">
                 <svg className="mx-auto h-16 w-16 text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -378,7 +363,7 @@ const GameRoom = () => {
 
           {/* Moderator Controls */}
           {currentPlayer?.isModerator && (
-            <div className={`bg-white rounded-2xl shadow-lg p-6 ${!revealed && !currentPlayer?.isObserver ? '' : 'lg:col-span-2'}`}>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Moderator controls
               </h2>
@@ -413,6 +398,33 @@ const GameRoom = () => {
             </div>
           )}
         </div>
+
+        {/* Card hand, docked to the bottom of the viewport. sticky (not
+            fixed) so it still occupies flow space and never covers the
+            moderator panel when the page is scrolled to the end. */}
+        {!revealed && !currentPlayer?.isObserver && (
+          <div className="sticky bottom-0 z-30 mt-6">
+            <div className="relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-2">
+              <p className="text-center text-sm font-medium text-gray-500 pt-3">
+                {currentPlayer?.selectedCard ? 'Your vote — tap another card to change it' : 'Choose your card'}
+              </p>
+              <CardHand
+                selectedCard={currentPlayer?.selectedCard || null}
+                onSelectCard={selectCard}
+                disabled={revealed}
+                cardValues={cardValues}
+              />
+              {currentPlayer?.isModerator && (
+                <button
+                  onClick={revealCards}
+                  className="hidden sm:block absolute right-4 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition duration-200"
+                >
+                  Reveal cards
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Avatar Editor Modal */}
