@@ -424,7 +424,7 @@ const GameRoom = () => {
         {!revealed && !currentPlayer?.isObserver && (
           <div className="sticky bottom-0 z-30 mt-6">
             <div
-              className={`relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-2 transition-[width] duration-300 ${
+              className={`relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-[width] duration-300 motion-reduce:transition-none ${
                 handBarStuck ? 'lg:w-[calc(100%-21.5rem)]' : 'w-full'
               }`}
             >
