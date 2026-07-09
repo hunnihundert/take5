@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, ChangeEvent } from 'react';
 import { AVATAR_LIMITS, Player } from '../types';
 import PokerTable from './PokerTable';
-import CardDeck from './CardDeck';
+import CardHand from './CardHand';
 import AvatarEditor from './AvatarEditor';
 import PlayerContextMenu from './PlayerContextMenu';
 import EmojiPicker from './EmojiPicker';
@@ -50,6 +50,28 @@ const GameRoom = () => {
   const [showApplyPoints, setShowApplyPoints] = useState(false);
   const [showDeckConfig, setShowDeckConfig] = useState(false);
   const [lastRevealedState, setLastRevealedState] = useState(false);
+
+  // Whether the card hand bar is pinned to the viewport bottom (as opposed to
+  // resting at its natural position at the end of the page). Detected via a
+  // sentinel placed right after the bar: the sentinel leaves the viewport
+  // exactly when the bar starts floating. While floating, the bar narrows to
+  // the table column on large screens so it never covers the story sidebar.
+  const [handBarStuck, setHandBarStuck] = useState(false);
+  const handBarSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Without the API (JSDOM in tests, very old browsers) the bar simply
+    // stays full width, which is a safe fallback.
+    if (!('IntersectionObserver' in window)) return;
+    const sentinel = handBarSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHandBarStuck(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   // Emoji throwing state
   const [contextMenu, setContextMenu] = useState<{ player: Player; x: number; y: number } | null>(null);
@@ -185,7 +207,11 @@ const GameRoom = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+      {/* --sidebar-w / --column-gap are the single source of truth for the
+          story-sidebar width and the table/sidebar gap. The sidebar, the flex
+          gap, and the floating card hand's width calc all consume them, so a
+          layout tweak here cannot silently break the hand-bar narrowing. */}
+      <div className="max-w-6xl mx-auto [--sidebar-w:20rem] [--column-gap:1.5rem]">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -326,7 +352,7 @@ const GameRoom = () => {
         </div>
 
         {/* Main Content Area with Stories Sidebar */}
-        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-[var(--column-gap)] mb-6">
           {/* Poker Table and Active Story */}
           <div className="flex-1">
             {/* Active Story Banner */}
@@ -347,7 +373,7 @@ const GameRoom = () => {
           </div>
 
           {/* Story List Sidebar */}
-          <div className="lg:w-80 flex-shrink-0 flex flex-col lg:max-h-[648px]">
+          <div className="lg:w-[var(--sidebar-w)] flex-shrink-0 flex flex-col lg:max-h-[648px]">
             <StoryList
               stories={stories}
               activeStory={activeStory}
@@ -372,26 +398,11 @@ const GameRoom = () => {
           </div>
         </div>
 
-        {/* Card Selection and Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Card Deck */}
-          {!revealed && !currentPlayer?.isObserver && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Choose your card
-              </h2>
-              <CardDeck
-                selectedCard={currentPlayer?.selectedCard || null}
-                onSelectCard={selectCard}
-                disabled={revealed}
-                cardValues={cardValues}
-              />
-            </div>
-          )}
-
+        {/* Controls */}
+        <div className="grid grid-cols-1 gap-6">
           {/* Observer Message */}
           {!revealed && currentPlayer?.isObserver && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <div className="text-center py-8">
                 <svg className="mx-auto h-16 w-16 text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -405,7 +416,7 @@ const GameRoom = () => {
 
           {/* Moderator Controls */}
           {currentPlayer?.isModerator && (
-            <div className={`bg-white rounded-2xl shadow-lg p-6 ${!revealed && !currentPlayer?.isObserver ? '' : 'lg:col-span-2'}`}>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Moderator controls
               </h2>
@@ -440,6 +451,40 @@ const GameRoom = () => {
             </div>
           )}
         </div>
+
+        {/* Card hand, docked to the bottom of the viewport. sticky (not
+            fixed) so it still occupies flow space and never covers the
+            moderator panel when the page is scrolled to the end. */}
+        {!revealed && !currentPlayer?.isObserver && (
+          <div className="sticky bottom-0 z-30 mt-6">
+            <div
+              className={`relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-[width] duration-300 motion-reduce:transition-none ${
+                handBarStuck ? 'lg:w-[calc(100%-var(--sidebar-w)-var(--column-gap))]' : 'w-full'
+              }`}
+            >
+              <p className="text-center text-sm font-medium text-gray-500 pt-3">
+                {currentPlayer?.selectedCard ? 'Your vote — tap another card to change it' : 'Choose your card'}
+              </p>
+              <CardHand
+                selectedCard={currentPlayer?.selectedCard || null}
+                onSelectCard={selectCard}
+                disabled={revealed}
+                cardValues={cardValues}
+              />
+              {currentPlayer?.isModerator && (
+                <button
+                  onClick={revealCards}
+                  className="hidden sm:block absolute right-4 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition duration-200"
+                >
+                  Reveal cards
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Always rendered (even when the bar itself is hidden) so the
+            IntersectionObserver can bind once on mount. */}
+        <div ref={handBarSentinelRef} className="h-px" aria-hidden="true" />
       </div>
 
       {/* Avatar Editor Modal */}

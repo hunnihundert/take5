@@ -91,7 +91,7 @@ take5/
 │   │   │   ├── Home.tsx                 # Landing page (create/join room)
 │   │   │   ├── GameRoom.tsx             # Main game room
 │   │   │   ├── PokerTable.tsx           # Poker table (circular layout)
-│   │   │   ├── CardDeck.tsx             # Card deck (values driven by room config)
+│   │   │   ├── CardHand.tsx             # Fanned card hand, docked to the viewport bottom
 │   │   │   ├── DeckConfigModal.tsx      # Deck configuration modal (presets + custom)
 │   │   │   ├── PlayerList.tsx           # Player list with avatars
 │   │   │   ├── Results.tsx              # Results display with average

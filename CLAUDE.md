@@ -94,7 +94,7 @@ Socket.io handles all game state synchronization. Key event patterns:
 - `client/src/hooks/useJiraSocket.ts` - Jira integration events
 - `client/src/components/GameRoom.tsx` - Main game interface
 - `client/src/components/PokerTable.tsx` - Circular player layout with consensus detection and average display
-- `client/src/components/CardDeck.tsx` - Card deck rendered from room's `cardValues`
+- `client/src/components/CardHand.tsx` - Fanned card hand rendered from room's `cardValues`, docked in a sticky bar at the viewport bottom (narrows to the table column while floating so it never covers the story sidebar)
 - `client/src/components/DeckConfigModal.tsx` - Deck configuration modal (presets + custom tag input)
 - `client/src/components/StoryList.tsx` - Story sidebar with Jira import
 - `client/src/utils/linkRenderer.tsx` - Renders HTTP/HTTPS URLs as clickable links in story text
