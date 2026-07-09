@@ -8,30 +8,35 @@ interface CardHandProps {
 }
 
 // Cards fanned out like a hand held at the table edge. Each card gets a small
-// rotation and vertical dip that grow toward the edges of the fan; the fan
-// flattens and overlap tightens as the deck grows so large custom decks
-// (up to 20 values) still fit on one row.
+// rotation, and the arc is built by lifting cards toward the center of the
+// fan rather than dipping the edges: scrollable overflow only ever extends
+// downward, so keeping all movement upward (into the top padding) is what
+// keeps the bar itself from becoming vertically scrollable. The fan flattens
+// and overlap tightens as the deck grows so large custom decks (up to 20
+// values) still fit on one row.
 const CardHand = ({ selectedCard, onSelectCard, disabled, cardValues }: CardHandProps) => {
   const n = cardValues.length;
   const mid = (n - 1) / 2;
   const totalSpreadDeg = Math.min(32, n * 4);
   const stepDeg = n > 1 ? totalSpreadDeg / (n - 1) : 0;
-  const maxDipPx = Math.min(16, n * 2);
+  const maxLiftPx = Math.min(14, n * 2);
   const overlapPx = n <= 8 ? 10 : n <= 14 ? 20 : 28;
 
   return (
-    <div className="flex justify-center items-end overflow-x-auto pt-8 pb-1 px-6">
+    // pb-2.5 covers the corners of the outermost rotated cards, which extend
+    // slightly below the baseline; everything else moves up, not down.
+    <div className="flex justify-center items-end overflow-x-auto pt-8 pb-2.5 px-6">
       {cardValues.map((value, i) => {
         const isSelected = selectedCard === value;
         const offset = mid > 0 ? (i - mid) / mid : 0; // -1 .. 1 across the fan
         const rotate = (i - mid) * stepDeg;
-        const dip = offset * offset * maxDipPx;
+        const lift = (1 - offset * offset) * maxLiftPx;
         return (
           <div
             key={value}
             className="shrink-0"
             style={{
-              transform: `rotate(${rotate}deg) translateY(${dip}px)`,
+              transform: `rotate(${rotate}deg) translateY(${-lift}px)`,
               transformOrigin: 'bottom center',
               zIndex: isSelected ? 50 : i,
               marginLeft: i === 0 ? 0 : -overlapPx,
