@@ -51,6 +51,25 @@ const GameRoom = () => {
   const [showDeckConfig, setShowDeckConfig] = useState(false);
   const [lastRevealedState, setLastRevealedState] = useState(false);
 
+  // Whether the card hand bar is pinned to the viewport bottom (as opposed to
+  // resting at its natural position at the end of the page). Detected via a
+  // sentinel placed right after the bar: the sentinel leaves the viewport
+  // exactly when the bar starts floating. While floating, the bar narrows to
+  // the table column on large screens so it never covers the story sidebar.
+  const [handBarStuck, setHandBarStuck] = useState(false);
+  const handBarSentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const sentinel = handBarSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHandBarStuck(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
   // Emoji throwing state
   const [contextMenu, setContextMenu] = useState<{ player: Player; x: number; y: number } | null>(null);
   const [emojiPicker, setEmojiPicker] = useState<{ playerId: string; x: number; y: number } | null>(null);
@@ -404,7 +423,11 @@ const GameRoom = () => {
             moderator panel when the page is scrolled to the end. */}
         {!revealed && !currentPlayer?.isObserver && (
           <div className="sticky bottom-0 z-30 mt-6">
-            <div className="relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-2">
+            <div
+              className={`relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-2 transition-[width] duration-300 ${
+                handBarStuck ? 'lg:w-[calc(100%-21.5rem)]' : 'w-full'
+              }`}
+            >
               <p className="text-center text-sm font-medium text-gray-500 pt-3">
                 {currentPlayer?.selectedCard ? 'Your vote — tap another card to change it' : 'Choose your card'}
               </p>
@@ -425,6 +448,9 @@ const GameRoom = () => {
             </div>
           </div>
         )}
+        {/* Always rendered (even when the bar itself is hidden) so the
+            IntersectionObserver can bind once on mount. */}
+        <div ref={handBarSentinelRef} className="h-px" aria-hidden="true" />
       </div>
 
       {/* Avatar Editor Modal */}
