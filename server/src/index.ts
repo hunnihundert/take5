@@ -13,7 +13,7 @@ import { jiraHandler } from './handlers/jiraHandler';
 import { initDatabase, isDatabaseEnabled, syncSchema } from './db';
 import { RoomRepository } from './db/repository';
 import { logger } from './utils/logger';
-import { CAPS } from './utils/validation';
+import { CAPS, ROOM_CODE_REGEX } from './utils/validation';
 
 export async function createServerApp(options?: { disconnectGraceMs?: number; voluntaryDisconnectGraceMs?: number }) {
   const app = express();
@@ -99,10 +99,13 @@ export async function createServerApp(options?: { disconnectGraceMs?: number; vo
     // URL; only that room is auto-rejoined. A tab pointed at a different room
     // (or the home page) must not be dragged into another room the session is
     // already part of — it shows the join form instead.
+    // The handshake value is untrusted; cap its length before normalizing and
+    // require the canonical format — anything else can't name a real room.
     const rawRequestedRoom = socket.handshake.auth?.roomCode;
-    const requestedRoom = typeof rawRequestedRoom === 'string'
+    const candidate = typeof rawRequestedRoom === 'string' && rawRequestedRoom.length <= 64
       ? rawRequestedRoom.trim().toUpperCase()
-      : undefined;
+      : '';
+    const requestedRoom = ROOM_CODE_REGEX.test(candidate) ? candidate : undefined;
 
     if (requestedRoom && sessionManager.isSessionInRoom(sessionId, requestedRoom)) {
       const wasDisconnected = sessionManager.cancelDisconnectTimer(sessionId, requestedRoom);

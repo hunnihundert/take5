@@ -1,6 +1,6 @@
 import { SocketHandler } from './types';
 import { logger } from '../utils/logger';
-import { LIMITS, isValidString, validateAvatarUrl } from '../utils/validation';
+import { LIMITS, ROOM_CODE_REGEX, isValidString, validateAvatarUrl } from '../utils/validation';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
@@ -77,8 +77,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         // and uppercased — so a padded but otherwise valid code is not
         // rejected on length
         const normalizedCode = roomCode.trim().toUpperCase();
-        if (!isValidString(normalizedCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
-            ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
+        if (!ROOM_CODE_REGEX.test(normalizedCode)) {
+            ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} alphanumeric characters` });
             return;
         }
         if (typeof playerName !== 'string') return;
