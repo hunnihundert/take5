@@ -1,6 +1,6 @@
 import { SocketHandler } from './types';
 import { logger } from '../utils/logger';
-import { LIMITS, isValidString } from '../utils/validation';
+import { LIMITS, isValidString, validateAvatarUrl } from '../utils/validation';
 
 export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManager) => {
     const sessionId = sessionManager.getSessionId(socket.id)!;
@@ -122,9 +122,9 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
     socket.on('updateAvatar', (avatarUrl: string | null) => {
         if (avatarUrl !== null) {
-            if (typeof avatarUrl !== 'string') return;
-            if (avatarUrl.length > LIMITS.avatarUrl.max) {
-                socket.emit('error', `Avatar URL must be ${LIMITS.avatarUrl.max} characters or fewer`);
+            const result = validateAvatarUrl(avatarUrl);
+            if (!result.valid) {
+                socket.emit('error', result.error);
                 return;
             }
         }

@@ -512,5 +512,56 @@ describe('Room Handler Integration', () => {
       const err = await errorPromise;
       expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/avatar url/i);
     });
+
+    it('should accept a base64 image data URL as avatar', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const dataUrl = 'data:image/jpeg;base64,' + 'A'.repeat(1000);
+      const updatedPromise = waitForEvent<any>(client1, 'avatarUpdated');
+      client1.emit('updateAvatar', dataUrl);
+      const updated = await updatedPromise;
+      expect(updated.avatarUrl).toBe(dataUrl);
+    });
+
+    it('should emit error when a data URL avatar exceeds the size limit', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const bigDataUrl = 'data:image/jpeg;base64,' + 'A'.repeat(64 * 1024);
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      client1.emit('updateAvatar', bigDataUrl);
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/avatar image/i);
+    });
+
+    it('should emit error for a data URL with a disallowed media type', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const svgDataUrl = 'data:image/svg+xml;base64,' + 'A'.repeat(100);
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      client1.emit('updateAvatar', svgDataUrl);
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/png, jpeg, or webp/i);
+    });
+
+    it('should emit error for an avatar URL that is not http(s) or a data URL', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      client1.emit('updateAvatar', 'javascript:alert(1)');
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/http/i);
+    });
   });
 });

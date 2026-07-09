@@ -124,6 +124,12 @@ const AvatarEditor = ({ imageUrl, onSave, onCancel }: AvatarEditorProps) => {
     const x = (300 - scaledWidth) / 2 + position.x;
     const y = (300 - scaledHeight) / 2 + position.y;
 
+    // JPEG has no alpha channel, so give transparent source pixels a white
+    // background instead of the default black. The circular crop is applied
+    // by CSS (rounded-full) wherever avatars are rendered, so no mask here.
+    finalCtx.fillStyle = '#ffffff';
+    finalCtx.fillRect(0, 0, finalSize, finalSize);
+
     // Scale down to final size
     const scaleRatio = finalSize / 300;
     finalCtx.drawImage(
@@ -134,13 +140,9 @@ const AvatarEditor = ({ imageUrl, onSave, onCancel }: AvatarEditorProps) => {
       scaledHeight * scaleRatio
     );
 
-    // Apply circular mask
-    finalCtx.globalCompositeOperation = 'destination-in';
-    finalCtx.beginPath();
-    finalCtx.arc(finalSize / 2, finalSize / 2, finalSize / 2, 0, Math.PI * 2);
-    finalCtx.fill();
-
-    const croppedImage = finalCanvas.toDataURL('image/png');
+    // Export as JPEG to keep the data URL small enough for the server's
+    // avatar size limit (base64 PNGs of photos are several times larger)
+    const croppedImage = finalCanvas.toDataURL('image/jpeg', 0.85);
     onSave(croppedImage);
   };
 
