@@ -66,6 +66,7 @@ export class SessionManager {
       for (const socketId of sockets) {
         this.socketToSession.delete(socketId);
         this.socketToRoom.delete(socketId);
+        this.voluntaryLeaveSockets.delete(socketId);
       }
     }
     this.sessionToSockets.delete(sessionId);
