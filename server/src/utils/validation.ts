@@ -22,8 +22,7 @@ export const LIMITS = {
   deckConfig: DECK_LIMITS,
 };
 
-// Canonical room-code format: 3-12 uppercase alphanumerics (after trim + uppercase).
-export const ROOM_CODE_REGEX = /^[A-Z0-9]{3,12}$/;
+export const ROOM_CODE_REGEX = new RegExp(`^[A-Z0-9]{${LIMITS.roomCode.min},${LIMITS.roomCode.max}}$`);
 
 export function isValidString(v: unknown, min: number, max: number): v is string {
   return typeof v === 'string' && v.length >= min && v.length <= max;
