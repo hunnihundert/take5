@@ -72,6 +72,26 @@ describe('Room Handler Integration', () => {
     expect(joinedPlayerData.isModerator).toBe(false);
   });
 
+  it('should join a room when the submitted code has padding and different case', async () => {
+    const roomCode = `WROOM${testIndex}`;
+
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    const roomJoinedPromise = waitForEvent<any>(client2, 'roomJoined');
+    const response = await new Promise<any>((resolve) => {
+      client2.emit('joinRoom', { roomCode: `  ${roomCode.toLowerCase()}  `, playerName: 'Player 2' }, resolve);
+    });
+    expect(response.success).toBe(true);
+
+    const joined = await roomJoinedPromise;
+    expect(joined.roomCode).toBe(roomCode); // canonical trimmed, uppercased code
+  });
+
   it('should transfer moderator when current moderator requests it', async () => {
     const roomCode = `TROOM${testIndex}`;
 

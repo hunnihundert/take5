@@ -118,7 +118,10 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 sessionManager.clearSessionRoom(sessionId, normalizedCode);
             }
 
-            const result = await roomManager.joinRoom(roomCode, playerName, sessionId);
+            // Use the same normalized code as the reattach check above, so a
+            // padded code (e.g. from a ?room= URL param) behaves identically
+            // on both paths — RoomManager.joinRoom does not trim by itself.
+            const result = await roomManager.joinRoom(normalizedCode, playerName, sessionId);
 
             if (!result.success) {
                 ack({ success: false, error: result.error });
