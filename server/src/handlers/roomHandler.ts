@@ -12,9 +12,15 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             ack({ success: false, error: `Player name must be ${LIMITS.playerName.min}–${LIMITS.playerName.max} characters` });
             return;
         }
+        // Validate the code as the rest of the pipeline will use it — trimmed —
+        // so a padded but otherwise valid code is not rejected on length.
+        // A whitespace-only code counts as "no custom code" (auto-generate),
+        // matching RoomManager.createRoom's own handling.
+        let customCode: string | undefined;
         if (roomCode !== undefined && roomCode !== null) {
             if (typeof roomCode !== 'string') return;
-            if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+            customCode = roomCode.trim() || undefined;
+            if (customCode !== undefined && !isValidString(customCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
                 ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
                 return;
             }
@@ -29,7 +35,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 return;
             }
 
-            const result = await roomManager.createRoom(playerName, sessionId, roomCode);
+            const result = await roomManager.createRoom(playerName, sessionId, customCode);
 
             if (!result.success) {
                 ack({ success: false, error: result.error });
@@ -67,7 +73,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         if (typeof payload !== 'object' || payload === null) return;
         const { roomCode, playerName } = payload as { roomCode?: unknown; playerName?: unknown };
         if (typeof roomCode !== 'string') return;
-        if (!isValidString(roomCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
+        // Validate the code as the rest of the handler will use it — trimmed
+        // and uppercased — so a padded but otherwise valid code is not
+        // rejected on length
+        const normalizedCode = roomCode.trim().toUpperCase();
+        if (!isValidString(normalizedCode, LIMITS.roomCode.min, LIMITS.roomCode.max)) {
             ack({ success: false, error: `Room code must be ${LIMITS.roomCode.min}–${LIMITS.roomCode.max} characters` });
             return;
         }
@@ -89,7 +99,6 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
             // Session already seated in this room (another tab or a grace
             // period): reattach this socket as the same player instead of
             // joining as a new one.
-            const normalizedCode = roomCode.trim().toUpperCase();
             if (sessionManager.isSessionInRoom(sessionId, normalizedCode)) {
                 const room = roomManager.getRoom(normalizedCode);
                 const player = room?.players.get(sessionId);

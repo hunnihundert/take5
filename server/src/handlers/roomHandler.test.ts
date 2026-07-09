@@ -92,6 +92,33 @@ describe('Room Handler Integration', () => {
     expect(joined.roomCode).toBe(roomCode); // canonical trimmed, uppercased code
   });
 
+  it('should accept a padded room code at max length on join (validation runs on the trimmed code)', async () => {
+    const roomCode = `PADJOIN${testIndex}`.padEnd(12, 'X'); // exactly 12 chars
+
+    await new Promise<void>((resolve) => {
+      client1.emit('createRoom', 'Player 1', roomCode, (res: any) => {
+        expect(res.success).toBe(true);
+        resolve();
+      });
+    });
+
+    // 16 chars raw — would fail the length check if validated untrimmed
+    const response = await new Promise<any>((resolve) => {
+      client2.emit('joinRoom', { roomCode: `  ${roomCode}  `, playerName: 'Player 2' }, resolve);
+    });
+    expect(response.success).toBe(true);
+  });
+
+  it('should accept a padded custom room code at max length on create', async () => {
+    const roomCode = `PADMAKE${testIndex}`.padEnd(12, 'X'); // exactly 12 chars
+
+    const response = await new Promise<any>((resolve) => {
+      client1.emit('createRoom', 'Player 1', `  ${roomCode}  `, resolve);
+    });
+    expect(response.success).toBe(true);
+    expect(response.roomCode).toBe(roomCode); // canonical trimmed code
+  });
+
   it('should transfer moderator when current moderator requests it', async () => {
     const roomCode = `TROOM${testIndex}`;
 
