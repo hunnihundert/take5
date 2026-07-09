@@ -258,15 +258,42 @@ const GameRoom = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button
-                onClick={toggleObserver}
-                className={`px-4 py-2 rounded-lg font-semibold transition duration-200 ${currentPlayer?.isObserver
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-purple-600 hover:bg-purple-700 text-white'
-                  }`}
+              {/* Participation mode segmented control: both modes visible, the
+                  active one highlighted, so the button text is never ambiguous
+                  between current state and action */}
+              <div
+                role="group"
+                aria-label="Participation mode"
+                className="flex rounded-lg overflow-hidden border border-gray-300 divide-x divide-gray-300"
               >
-                {currentPlayer?.isObserver ? 'Participate actively' : 'Observer mode'}
-              </button>
+                <button
+                  onClick={() => { if (currentPlayer?.isObserver) toggleObserver(); }}
+                  aria-pressed={!currentPlayer?.isObserver}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition duration-200 ${!currentPlayer?.isObserver
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                  </svg>
+                  Participate
+                </button>
+                <button
+                  onClick={() => { if (!currentPlayer?.isObserver) toggleObserver(); }}
+                  aria-pressed={currentPlayer?.isObserver ?? false}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold transition duration-200 ${currentPlayer?.isObserver
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 4.5 12 4.5c4.478 0 8.268 3.443 9.542 7.5-1.274 4.057-5.064 7.5-9.542 7.5-4.477 0-8.268-3.443-9.542-7.5z" />
+                  </svg>
+                  Observe
+                </button>
+              </div>
               <div className="flex flex-col gap-2">
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Room code</p>
