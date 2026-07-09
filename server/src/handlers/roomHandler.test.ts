@@ -197,7 +197,7 @@ describe('Room Handler Integration', () => {
       reconnectionDelay: 0,
       forceNew: true,
       transports: ['websocket'],
-      auth: { sessionId: client2.sessionId },
+      auth: { sessionId: client2.sessionId, roomCode },
     });
     await new Promise<void>((resolve) => client2b.once('connect', resolve));
 
@@ -250,7 +250,7 @@ describe('Room Handler Integration', () => {
       reconnectionDelay: 0,
       forceNew: true,
       transports: ['websocket'],
-      auth: { sessionId: client2.sessionId },
+      auth: { sessionId: client2.sessionId, roomCode },
     });
     await new Promise<void>((resolve) => client2b.once('connect', resolve));
 
@@ -350,7 +350,7 @@ describe('Room Handler Integration', () => {
       reconnectionDelay: 0,
       forceNew: true,
       transports: ['websocket'],
-      auth: { sessionId: client2.sessionId },
+      auth: { sessionId: client2.sessionId, roomCode },
     });
 
     const [playerReconnectedData] = await Promise.all([
@@ -393,7 +393,7 @@ describe('Room Handler Integration', () => {
       reconnectionDelay: 0,
       forceNew: true,
       transports: ['websocket'],
-      auth: { sessionId: client2.sessionId },
+      auth: { sessionId: client2.sessionId, roomCode },
     });
     await new Promise<void>((resolve) => client2b.once('connect', resolve));
 
@@ -562,6 +562,140 @@ describe('Room Handler Integration', () => {
       client1.emit('updateAvatar', 'javascript:alert(1)');
       const err = await errorPromise;
       expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/http/i);
+    });
+  });
+
+  describe('multi-room sessions', () => {
+    // Opens an extra socket for an existing session, optionally pointing at a
+    // room via the handshake (like a browser tab with ?room= in its URL).
+    // The roomJoined listener is attached before the connection completes,
+    // because the server emits it during the connection handshake.
+    const openTab = async (sessionId: string, roomCode?: string) => {
+      const { io: ioc } = await import('socket.io-client');
+      const tab: any = ioc(`http://localhost:${server.port}`, {
+        reconnectionDelay: 0,
+        forceNew: true,
+        transports: ['websocket'],
+        auth: { sessionId, roomCode },
+      });
+      tab.roomJoined = waitForEvent<any>(tab, 'roomJoined');
+      await new Promise<void>((resolve) => tab.once('connect', resolve));
+      return tab;
+    };
+
+    const expectNoRoomJoined = (tab: any, ms = 200) =>
+      Promise.race([
+        tab.roomJoined.then(() => 'roomJoined' as const),
+        new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), ms)),
+      ]);
+
+    it('should not auto-join a tab that has no room in its URL', async () => {
+      const roomCode = `MROOM${testIndex}A`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const homeTab = await openTab(client1.sessionId);
+      expect(await expectNoRoomJoined(homeTab)).toBe('timeout');
+      homeTab.disconnect();
+    });
+
+    it('should not drag a tab pointed at a different room into the previous room', async () => {
+      const roomA = `MROOM${testIndex}A`;
+      const roomB = `MROOM${testIndex}B`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomA, () => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        client2.emit('createRoom', 'Player 2', roomB, () => resolve());
+      });
+
+      // New tab of client1's session pointing at roomB (a room it is NOT in):
+      // no auto-join into either room
+      const tab = await openTab(client1.sessionId, roomB);
+      expect(await expectNoRoomJoined(tab)).toBe('timeout');
+
+      // The tab can then explicitly join roomB
+      const playerJoinedPromise = waitForEvent<any>(client2, 'playerJoined');
+      const joinResponse = await new Promise<any>((resolve) => {
+        tab.emit('joinRoom', { roomCode: roomB, playerName: 'Player 1' }, resolve);
+      });
+      expect(joinResponse.success).toBe(true);
+      const joined = await playerJoinedPromise;
+      expect(joined.id).toBe(client1.sessionId);
+
+      tab.disconnect();
+    });
+
+    it('should let a session sit in two rooms simultaneously', async () => {
+      const roomA = `MROOM${testIndex}A`;
+      const roomB = `MROOM${testIndex}B`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomA, () => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        client2.emit('createRoom', 'Player 2', roomB, () => resolve());
+      });
+
+      // Second tab of client1's session joins roomB
+      const tabB = await openTab(client1.sessionId, roomB);
+      const joinResponse = await new Promise<any>((resolve) => {
+        tabB.emit('joinRoom', { roomCode: roomB, playerName: 'Player 1' }, resolve);
+      });
+      expect(joinResponse.success).toBe(true);
+
+      // Closing the roomB tab removes the player from roomB only...
+      const playerLeftPromise = waitForEvent<any>(client2, 'playerLeft');
+      tabB.disconnect();
+      const left = await playerLeftPromise;
+      expect(left.playerId).toBe(client1.sessionId);
+
+      // ...while the roomA membership is untouched: a tab pointing at roomA
+      // is seated immediately via auto-rejoin
+      const tabA = await openTab(client1.sessionId, roomA);
+      const rejoined = await tabA.roomJoined;
+      expect(rejoined.roomCode).toBe(roomA);
+      expect(rejoined.player.id).toBe(client1.sessionId);
+      tabA.disconnect();
+    }, 10_000);
+
+    it('should reattach an explicit joinRoom for a room the session is already in as the same player', async () => {
+      const roomCode = `MROOM${testIndex}A`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      // Tab connects without a room param, then explicitly joins the room the
+      // session already sits in — even under a different name
+      const tab = await openTab(client1.sessionId);
+      const roomJoinedPromise = waitForEvent<any>(tab, 'roomJoined');
+      const response = await new Promise<any>((resolve) => {
+        tab.emit('joinRoom', { roomCode, playerName: 'Someone Else' }, resolve);
+      });
+      expect(response.success).toBe(true);
+
+      const joined = await roomJoinedPromise;
+      expect(joined.player.id).toBe(client1.sessionId);
+      expect(joined.player.name).toBe('Player 1'); // existing seat, name unchanged
+      expect(joined.player.isModerator).toBe(true);
+      tab.disconnect();
+    });
+
+    it('should reject a second room on the same tab (socket already bound)', async () => {
+      const roomA = `MROOM${testIndex}A`;
+      const roomB = `MROOM${testIndex}B`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomA, () => resolve());
+      });
+      await new Promise<void>((resolve) => {
+        client2.emit('createRoom', 'Player 2', roomB, () => resolve());
+      });
+
+      const response = await new Promise<any>((resolve) => {
+        client1.emit('joinRoom', { roomCode: roomB, playerName: 'Player 1' }, resolve);
+      });
+      expect(response.success).toBe(false);
+      expect(response.error).toMatch(/already in room/i);
     });
   });
 });

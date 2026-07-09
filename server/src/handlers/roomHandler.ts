@@ -21,10 +21,11 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         }
 
         try {
-            // Check if session is already in a room
-            const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
-            if (existingRoom) {
-                ack({ success: false, error: `You are already in room ${existingRoom}` });
+            // A tab drives at most one room; other tabs of the same session
+            // may sit in other rooms independently.
+            const boundRoom = sessionManager.getRoomCodeForSocket(socket.id);
+            if (boundRoom) {
+                ack({ success: false, error: `This tab is already in room ${boundRoom}` });
                 return;
             }
 
@@ -41,6 +42,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 playerName,
                 isModerator: true,
             });
+            sessionManager.bindSocketToRoom(socket.id, room.code);
 
             socket.join(room.code);
 
@@ -76,11 +78,44 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         }
 
         try {
-            // Check if session is already in a different room
-            const existingRoom = sessionManager.getSessionInfo(sessionId)?.roomCode;
-            if (existingRoom && existingRoom.toUpperCase() !== roomCode.toUpperCase()) {
-                ack({ success: false, error: `You are already in room ${existingRoom}` });
+            // A tab drives at most one room; other tabs of the same session
+            // may sit in other rooms independently.
+            const boundRoom = sessionManager.getRoomCodeForSocket(socket.id);
+            if (boundRoom) {
+                ack({ success: false, error: `This tab is already in room ${boundRoom}` });
                 return;
+            }
+
+            // Session already seated in this room (another tab or a grace
+            // period): reattach this socket as the same player instead of
+            // joining as a new one.
+            const normalizedCode = roomCode.trim().toUpperCase();
+            if (sessionManager.isSessionInRoom(sessionId, normalizedCode)) {
+                const room = roomManager.getRoom(normalizedCode);
+                const player = room?.players.get(sessionId);
+                if (room && player) {
+                    const wasDisconnected = sessionManager.cancelDisconnectTimer(sessionId, room.code);
+                    sessionManager.bindSocketToRoom(socket.id, room.code);
+                    socket.join(room.code);
+
+                    ack({ success: true });
+                    socket.emit('roomJoined', {
+                        roomCode: room.code,
+                        player,
+                        players: roomManager.getPlayersArray(room),
+                        stories: room.stories,
+                        activeStoryId: room.activeStoryId ?? null,
+                        jiraConnected: room.jiraConfig !== undefined,
+                        cardValues: room.cardValues
+                    });
+
+                    if (wasDisconnected) {
+                        socket.to(room.code).emit('playerReconnected', { playerId: sessionId });
+                    }
+                    return;
+                }
+                // Stale membership — room or player is gone; fall through to a fresh join
+                sessionManager.clearSessionRoom(sessionId, normalizedCode);
             }
 
             const result = await roomManager.joinRoom(roomCode, playerName, sessionId);
@@ -96,6 +131,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                 playerName,
                 isModerator: player.isModerator,
             });
+            sessionManager.bindSocketToRoom(socket.id, room.code);
 
             socket.join(room.code);
 
@@ -159,8 +195,10 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('leaveRoom', () => {
-        const sessionInfo = sessionManager.getSessionInfo(sessionId);
-        if (!sessionInfo?.roomCode) return;
+        // Scoped to the room this tab is bound to — other rooms the session
+        // sits in (via other tabs) are unaffected.
+        const roomCode = sessionManager.getRoomCodeForSocket(socket.id);
+        if (!roomCode) return;
 
         // Mark this specific socket as voluntarily leaving. unregisterSocket()
         // returns wasVoluntary and clears the flag, so the disconnect handler
@@ -169,10 +207,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         // also emitted leaveRoom.
         sessionManager.markSocketVoluntaryLeave(socket.id);
 
-        const sockets = sessionManager.getSocketIds(sessionId);
-        if (sockets.size > 1) return; // other tabs still open — last disconnect handles it
-
-        const roomCode = sessionInfo.roomCode;
+        const socketsInRoom = sessionManager.getSocketIdsInRoom(sessionId, roomCode);
+        if (socketsInRoom.size > 1) return; // other tabs still show this room — last disconnect handles it
 
         // Notify others the player is temporarily gone (may come back on reload)
         socket.to(roomCode).emit('playerDisconnected', { playerId: sessionId });
@@ -180,7 +216,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
         // Start a short grace period — enough time for a page reload to reconnect.
         // If the player reconnects within this window, the timer is cancelled and
         // they are fully restored. If not, they are removed as if they had left.
-        sessionManager.startDisconnectTimer(sessionId, () => {
+        sessionManager.startDisconnectTimer(sessionId, roomCode, () => {
             const result = roomManager.removePlayer(roomCode, sessionId);
             if (result.removed) {
                 io.to(roomCode).emit('playerLeft', {
@@ -188,7 +224,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                     newModeratorId: result.newModerator?.id,
                 });
             }
-            sessionManager.destroySession(sessionId);
+            sessionManager.clearSessionRoom(sessionId, roomCode);
+            sessionManager.destroySessionIfIdle(sessionId);
             logger.info(`Session ${sessionId} removed from room ${roomCode} after voluntary grace period`);
         }, sessionManager.voluntaryDisconnectGraceMs);
 
@@ -201,27 +238,29 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
     });
 
     socket.on('disconnect', () => {
-        const { sessionId: sid, isLastSocket, wasVoluntary } = sessionManager.unregisterSocket(socket.id);
+        const { sessionId: sid, roomCode, isLastSocketForRoom, isLastSocket, wasVoluntary } =
+            sessionManager.unregisterSocket(socket.id);
         if (!sid) return;
 
-        // If other tabs are still connected, do nothing
-        if (!isLastSocket) {
-            logger.info(`Socket ${socket.id} disconnected, but session ${sid} still has other sockets`);
+        if (!roomCode) {
+            // This tab wasn't in a room. Clean the session up only if nothing
+            // else references it (no other tabs, no room memberships).
+            if (isLastSocket) {
+                logger.info(`Session ${sid} disconnected with no room`);
+                sessionManager.destroySessionIfIdle(sid);
+            }
             return;
         }
 
-        const sessionInfo = sessionManager.getSessionInfo(sid);
-        if (!sessionInfo?.roomCode) {
-            logger.info(`Session ${sid} disconnected with no room`);
-            sessionManager.destroySession(sid);
+        // If other tabs still show this room, the seat stays live
+        if (!isLastSocketForRoom) {
+            logger.info(`Socket ${socket.id} disconnected, but session ${sid} still has other sockets in room ${roomCode}`);
             return;
         }
-
-        const roomCode = sessionInfo.roomCode;
 
         // If leaveRoom already started a voluntary grace period, don't override it
         // with the longer involuntary grace period
-        if (sessionManager.hasActiveTimer(sid)) {
+        if (sessionManager.hasActiveTimer(sid, roomCode)) {
             logger.info(`Socket ${socket.id} disconnected for session ${sid} — voluntary grace period already running`);
             return;
         }
@@ -233,7 +272,7 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
 
         io.to(roomCode).emit('playerDisconnected', { playerId: sid });
 
-        sessionManager.startDisconnectTimer(sid, () => {
+        sessionManager.startDisconnectTimer(sid, roomCode, () => {
             const result = roomManager.removePlayer(roomCode, sid);
             if (result.removed) {
                 io.to(roomCode).emit('playerLeft', {
@@ -241,7 +280,8 @@ export const roomHandler: SocketHandler = (io, socket, roomManager, sessionManag
                     newModeratorId: result.newModerator?.id
                 });
             }
-            sessionManager.destroySession(sid);
+            sessionManager.clearSessionRoom(sid, roomCode);
+            sessionManager.destroySessionIfIdle(sid);
             logger.info(`Session ${sid} removed from room ${roomCode} after ${wasVoluntary ? 'voluntary' : 'involuntary'} grace period`);
         }, graceMs);
 

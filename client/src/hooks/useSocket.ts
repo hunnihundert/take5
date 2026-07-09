@@ -13,11 +13,16 @@ export const useSocket = () => {
   );
 
   useEffect(() => {
-    const storedSessionId = localStorage.getItem('take5_sessionId');
-
+    // auth is a callback so it is re-evaluated on every (re)connect attempt:
+    // the handshake always carries the latest stored session ID and the room
+    // code this tab is currently looking at. The server only auto-rejoins the
+    // room named here, which lets different tabs sit in different rooms.
     const socketInstance = io(BACKEND_URL, {
-      auth: {
-        sessionId: storedSessionId || undefined,
+      auth: (cb) => {
+        cb({
+          sessionId: localStorage.getItem('take5_sessionId') || undefined,
+          roomCode: new URLSearchParams(window.location.search).get('room') || undefined,
+        });
       },
     });
 
@@ -32,8 +37,9 @@ export const useSocket = () => {
     });
 
     socketInstance.on('sessionCreated', ({ sessionId: newId }: { sessionId: string }) => {
+      // The auth callback reads localStorage on each connect, so storing the
+      // ID here is enough for future reconnects.
       localStorage.setItem('take5_sessionId', newId);
-      socketInstance.auth = { sessionId: newId };
       setSessionId(newId);
       console.log('Session created:', newId);
     });
