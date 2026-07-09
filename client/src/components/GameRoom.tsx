@@ -207,7 +207,11 @@ const GameRoom = () => {
 
   return (
     <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+      {/* --sidebar-w / --column-gap are the single source of truth for the
+          story-sidebar width and the table/sidebar gap. The sidebar, the flex
+          gap, and the floating card hand's width calc all consume them, so a
+          layout tweak here cannot silently break the hand-bar narrowing. */}
+      <div className="max-w-6xl mx-auto [--sidebar-w:20rem] [--column-gap:1.5rem]">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -348,7 +352,7 @@ const GameRoom = () => {
         </div>
 
         {/* Main Content Area with Stories Sidebar */}
-        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-[var(--column-gap)] mb-6">
           {/* Poker Table and Active Story */}
           <div className="flex-1">
             {/* Active Story Banner */}
@@ -369,7 +373,7 @@ const GameRoom = () => {
           </div>
 
           {/* Story List Sidebar */}
-          <div className="lg:w-80 flex-shrink-0 flex flex-col lg:max-h-[648px]">
+          <div className="lg:w-[var(--sidebar-w)] flex-shrink-0 flex flex-col lg:max-h-[648px]">
             <StoryList
               stories={stories}
               activeStory={activeStory}
@@ -455,7 +459,7 @@ const GameRoom = () => {
           <div className="sticky bottom-0 z-30 mt-6">
             <div
               className={`relative bg-white/90 backdrop-blur rounded-t-2xl shadow-[0_-6px_24px_rgba(0,0,0,0.15)] px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-[width] duration-300 motion-reduce:transition-none ${
-                handBarStuck ? 'lg:w-[calc(100%-21.5rem)]' : 'w-full'
+                handBarStuck ? 'lg:w-[calc(100%-var(--sidebar-w)-var(--column-gap))]' : 'w-full'
               }`}
             >
               <p className="text-center text-sm font-medium text-gray-500 pt-3">

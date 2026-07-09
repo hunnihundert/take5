@@ -24,7 +24,8 @@ describe('CardHand', () => {
         render(<CardHand {...baseProps} onSelectCard={onSelectCard} />);
 
         fireEvent.click(screen.getByRole('button', { name: '8' }));
-        expect(onSelectCard).toHaveBeenCalledExactlyOnceWith('8');
+        expect(onSelectCard).toHaveBeenCalledOnce();
+        expect(onSelectCard).toHaveBeenCalledWith('8');
     });
 
     it('marks only the selected card as pressed', () => {

@@ -5,7 +5,7 @@ interface CardHandProps {
   selectedCard: CardValue | null;
   onSelectCard: (cardValue: CardValue) => void;
   disabled: boolean;
-  cardValues: string[];
+  cardValues: CardValue[];
 }
 
 // Cards fanned out like a hand held at the table edge. Each card gets a small
