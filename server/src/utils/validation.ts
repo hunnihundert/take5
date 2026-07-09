@@ -1,4 +1,4 @@
-import { DECK_LIMITS } from '@taking5/shared';
+import { AVATAR_LIMITS, DECK_LIMITS } from '@taking5/shared';
 
 export const CAPS = {
   maxRooms: 500,
@@ -11,7 +11,7 @@ export const LIMITS = {
   playerName: { min: 1, max: 50 },
   roomCode: { min: 3, max: 12 },
   storySummary: { min: 1, max: 500 },
-  avatarUrl: { max: 500 },
+  avatarUrl: AVATAR_LIMITS,
   emoji: { max: 10 },
   jql: { max: 1000 },
   jiraBaseUrl: { max: 200 },
@@ -24,6 +24,30 @@ export const LIMITS = {
 
 export function isValidString(v: unknown, min: number, max: number): v is string {
   return typeof v === 'string' && v.length >= min && v.length <= max;
+}
+
+// Avatars come in two shapes: a link to an externally hosted image, or the image
+// itself inlined as a base64 data URL from the avatar editor. Each gets its own cap.
+export function validateAvatarUrl(v: unknown): { valid: true } | { valid: false; error: string } {
+  if (typeof v !== 'string' || v.length === 0) return { valid: false, error: 'Avatar URL must be a non-empty string' };
+
+  if (v.startsWith('data:')) {
+    if (!AVATAR_LIMITS.allowedDataUrlPrefixes.some((prefix) => v.startsWith(prefix))) {
+      return { valid: false, error: 'Avatar image must be a base64-encoded PNG, JPEG, or WebP' };
+    }
+    if (v.length > AVATAR_LIMITS.maxDataUrlLength) {
+      return { valid: false, error: `Avatar image must be ${Math.floor(AVATAR_LIMITS.maxDataUrlLength / 1024)} KB or smaller` };
+    }
+    return { valid: true };
+  }
+
+  if (!v.startsWith('https://') && !v.startsWith('http://')) {
+    return { valid: false, error: 'Avatar URL must start with http:// or https://' };
+  }
+  if (v.length > AVATAR_LIMITS.maxUrlLength) {
+    return { valid: false, error: `Avatar URL must be ${AVATAR_LIMITS.maxUrlLength} characters or fewer` };
+  }
+  return { valid: true };
 }
 
 export function validateCardValues(values: unknown): { valid: true; values: string[] } | { valid: false; error: string } {

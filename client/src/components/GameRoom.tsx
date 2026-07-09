@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, ChangeEvent } from 'react';
-import { Player } from '../types';
+import { AVATAR_LIMITS, Player } from '../types';
 import PokerTable from './PokerTable';
 import CardDeck from './CardDeck';
 import AvatarEditor from './AvatarEditor';
@@ -130,6 +130,10 @@ const GameRoom = () => {
   };
 
   const handleAvatarSave = (croppedImage: string) => {
+    if (croppedImage.length > AVATAR_LIMITS.maxDataUrlLength) {
+      alert(`The cropped image is too large (max ${Math.floor(AVATAR_LIMITS.maxDataUrlLength / 1024)} KB). Please try a smaller image.`);
+      return;
+    }
     updateAvatar(croppedImage);
     setShowAvatarEditor(false);
     setSelectedImageUrl('');

@@ -27,6 +27,19 @@ export const DECK_LIMITS = {
     maxValueLength: 8,
 } as const;
 
+export const AVATAR_LIMITS = {
+    // Plain http(s) links to externally hosted images
+    maxUrlLength: 500,
+    // Inline data URLs produced by the avatar editor (base64-encoded image bytes).
+    // Kept small because avatars are broadcast to every player in the room.
+    maxDataUrlLength: 64 * 1024,
+    allowedDataUrlPrefixes: [
+        "data:image/png;base64,",
+        "data:image/jpeg;base64,",
+        "data:image/webp;base64,",
+    ],
+} as const;
+
 export interface Story {
     id: string;
     key?: string; // Jira issue key (e.g., "PROJ-123")
