@@ -48,6 +48,7 @@ const AvatarPickerModal = ({
         <div className="flex items-center justify-between mb-4">
           <h2 id="avatar-picker-title" className="text-2xl font-bold text-gray-800">Choose an avatar</h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
             className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
@@ -62,6 +63,7 @@ const AvatarPickerModal = ({
           {DEFAULT_AVATARS.map((path) => (
             <button
               key={path}
+              type="button"
               onClick={() => onSelectDefault(path)}
               className={`rounded-full overflow-hidden border-2 aspect-square bg-gray-100 hover:border-primary-500 transition-colors ${
                 currentAvatarUrl === path ? 'border-primary-600' : 'border-transparent'
@@ -76,6 +78,7 @@ const AvatarPickerModal = ({
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={onUploadClick}
             className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition duration-200"
           >
@@ -83,6 +86,7 @@ const AvatarPickerModal = ({
           </button>
           {currentAvatarUrl && (
             <button
+              type="button"
               onClick={onRemove}
               className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition duration-200"
             >

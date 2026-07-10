@@ -49,7 +49,7 @@ export function validateAvatarUrl(v: unknown): { valid: true } | { valid: false;
   }
 
   if (!v.startsWith('https://') && !v.startsWith('http://')) {
-    return { valid: false, error: 'Avatar URL must start with http:// or https://' };
+    return { valid: false, error: 'Avatar URL must start with http:// or https://, or be one of the built-in default avatars' };
   }
   if (v.length > AVATAR_LIMITS.maxUrlLength) {
     return { valid: false, error: `Avatar URL must be ${AVATAR_LIMITS.maxUrlLength} characters or fewer` };
