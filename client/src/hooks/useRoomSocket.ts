@@ -1,6 +1,12 @@
 import { useCallback, useEffect } from "react";
 import { Socket } from "socket.io-client";
-import { Player, RoomState, Story, DEFAULT_CARD_VALUES } from "../types";
+import {
+    Player,
+    RoomState,
+    Story,
+    DEFAULT_CARD_VALUES,
+    getRandomDefaultAvatar,
+} from "../types";
 
 interface UseRoomSocketProps {
     socket: Socket | null;
@@ -54,11 +60,25 @@ export const useRoomSocket = ({
                 localStorage.setItem("take5_roomCode", roomCode);
                 localStorage.setItem("take5_playerName", player.name);
 
-                // Auto-restore avatar from localStorage if player doesn't have one
+                // Auto-restore avatar from localStorage. Three states: key
+                // absent = user never chose, assign a sticky random default
+                // (the avatarUpdated echo persists the pick); "" = user
+                // explicitly removed their avatar, stay avatar-less;
+                // otherwise restore the stored avatar.
                 if (!player.avatarUrl) {
                     const storedAvatar =
                         localStorage.getItem("take5_avatarUrl");
-                    if (storedAvatar) {
+                    if (storedAvatar === null) {
+                        const randomAvatar = getRandomDefaultAvatar();
+                        // Persist before emitting so tabs joining
+                        // concurrently restore this pick instead of
+                        // rolling their own (avatar flapping).
+                        localStorage.setItem(
+                            "take5_avatarUrl",
+                            randomAvatar,
+                        );
+                        socket.emit("updateAvatar", randomAvatar);
+                    } else if (storedAvatar !== "") {
                         socket.emit("updateAvatar", storedAvatar);
                     }
                 }
@@ -195,7 +215,7 @@ export const useRoomSocket = ({
                 avatarUrl,
             }: {
                 playerId: string;
-                avatarUrl: string;
+                avatarUrl: string | null;
             }) => {
                 setRoomState((prev: RoomState) => {
                     const updatedPlayers = prev.players.map((p: Player) =>
@@ -208,13 +228,14 @@ export const useRoomSocket = ({
                             ? { ...prev.currentPlayer, avatarUrl }
                             : prev.currentPlayer;
 
-                    // Persist own avatar to localStorage
+                    // Persist own avatar to localStorage. An explicit removal
+                    // is stored as "" so the next join stays avatar-less
+                    // instead of assigning a new random default.
                     if (prev.currentPlayer?.id === playerId) {
-                        if (avatarUrl) {
-                            localStorage.setItem("take5_avatarUrl", avatarUrl);
-                        } else {
-                            localStorage.removeItem("take5_avatarUrl");
-                        }
+                        localStorage.setItem(
+                            "take5_avatarUrl",
+                            avatarUrl ?? "",
+                        );
                     }
 
                     return {

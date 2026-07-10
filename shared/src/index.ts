@@ -40,6 +40,27 @@ export const AVATAR_LIMITS = {
     ],
 } as const;
 
+// Built-in avatars shipped with the client (served from client/public/avatars).
+// The server whitelists exactly these paths in validateAvatarUrl, so renaming
+// or adding a file must be reflected here.
+export const DEFAULT_AVATARS = [
+    "/avatars/bison-arbeiten.svg",
+    "/avatars/bison-buehne.svg",
+    "/avatars/bison-cocktail.svg",
+    "/avatars/bison-fernglas.svg",
+    "/avatars/bison-halten.svg",
+    "/avatars/bison-jubel.svg",
+    "/avatars/bison-karneval.svg",
+    "/avatars/bison-koffer.svg",
+    "/avatars/bison-kopf.svg",
+    "/avatars/bison-nachdenklich.svg",
+    "/avatars/bison-zeigen.svg",
+] as const;
+
+export function getRandomDefaultAvatar(): string {
+    return DEFAULT_AVATARS[Math.floor(Math.random() * DEFAULT_AVATARS.length)];
+}
+
 export interface Story {
     id: string;
     key?: string; // Jira issue key (e.g., "PROJ-123")

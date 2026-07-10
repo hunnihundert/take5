@@ -3,6 +3,7 @@ import { AVATAR_LIMITS, Player } from '../types';
 import PokerTable from './PokerTable';
 import CardHand from './CardHand';
 import AvatarEditor from './AvatarEditor';
+import AvatarPickerModal from './AvatarPickerModal';
 import PlayerContextMenu from './PlayerContextMenu';
 import EmojiPicker from './EmojiPicker';
 import FlyingEmojiContainer, { useFlyingEmojis } from './FlyingEmoji';
@@ -41,6 +42,7 @@ const GameRoom = () => {
 
   const { roomCode, currentPlayer, players, revealed, stories, activeStory, jiraConnected, cardValues } = roomState;
   const [copied, setCopied] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -119,6 +121,16 @@ const GameRoom = () => {
   };
 
   const handleAvatarClick = () => {
+    setShowAvatarPicker(true);
+  };
+
+  const handleSelectDefaultAvatar = (path: string) => {
+    updateAvatar(path);
+    setShowAvatarPicker(false);
+  };
+
+  const handleUploadClick = () => {
+    setShowAvatarPicker(false);
     fileInputRef.current?.click();
   };
 
@@ -486,6 +498,20 @@ const GameRoom = () => {
             IntersectionObserver can bind once on mount. */}
         <div ref={handBarSentinelRef} className="h-px" aria-hidden="true" />
       </div>
+
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <AvatarPickerModal
+          currentAvatarUrl={currentPlayer?.avatarUrl ?? null}
+          onSelectDefault={handleSelectDefaultAvatar}
+          onUploadClick={handleUploadClick}
+          onRemove={() => {
+            handleRemoveAvatar();
+            setShowAvatarPicker(false);
+          }}
+          onClose={() => setShowAvatarPicker(false)}
+        />
+      )}
 
       {/* Avatar Editor Modal */}
       {showAvatarEditor && selectedImageUrl && (
