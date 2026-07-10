@@ -60,16 +60,22 @@ export const useRoomSocket = ({
                 localStorage.setItem("take5_roomCode", roomCode);
                 localStorage.setItem("take5_playerName", player.name);
 
-                // Auto-restore avatar from localStorage; first-time users get a
-                // random default. The avatarUpdated echo persists the pick to
-                // localStorage, so it stays the same across sessions.
+                // Auto-restore avatar from localStorage. Three states: key
+                // absent = user never chose, assign a sticky random default
+                // (the avatarUpdated echo persists the pick); "" = user
+                // explicitly removed their avatar, stay avatar-less;
+                // otherwise restore the stored avatar.
                 if (!player.avatarUrl) {
                     const storedAvatar =
                         localStorage.getItem("take5_avatarUrl");
-                    socket.emit(
-                        "updateAvatar",
-                        storedAvatar ?? getRandomDefaultAvatar(),
-                    );
+                    if (storedAvatar === null) {
+                        socket.emit(
+                            "updateAvatar",
+                            getRandomDefaultAvatar(),
+                        );
+                    } else if (storedAvatar !== "") {
+                        socket.emit("updateAvatar", storedAvatar);
+                    }
                 }
 
                 // Update URL with room code
@@ -217,13 +223,14 @@ export const useRoomSocket = ({
                             ? { ...prev.currentPlayer, avatarUrl }
                             : prev.currentPlayer;
 
-                    // Persist own avatar to localStorage
+                    // Persist own avatar to localStorage. An explicit removal
+                    // is stored as "" so the next join stays avatar-less
+                    // instead of assigning a new random default.
                     if (prev.currentPlayer?.id === playerId) {
-                        if (avatarUrl) {
-                            localStorage.setItem("take5_avatarUrl", avatarUrl);
-                        } else {
-                            localStorage.removeItem("take5_avatarUrl");
-                        }
+                        localStorage.setItem(
+                            "take5_avatarUrl",
+                            avatarUrl ?? "",
+                        );
                     }
 
                     return {

@@ -149,6 +149,49 @@ describe('useRoomSocket', () => {
         expect(avatarEmit!.args[0]).toBe(storedAvatar);
     });
 
+    it('should stay avatar-less when the user explicitly removed their avatar', () => {
+        localStorage.setItem('take5_avatarUrl', '');
+
+        renderHook(() => useRoomSocket({
+            socket: mockSocket as any,
+            setRoomState,
+            setInRoom
+        }));
+
+        const player = { id: 'player-1', name: 'Player 1', isModerator: true, avatarUrl: null };
+
+        act(() => {
+            mockSocket.trigger('roomJoined', {
+                roomCode: 'ABCD',
+                player,
+                players: [player],
+                stories: [],
+                activeStoryId: null,
+                jiraConnected: false
+            });
+        });
+
+        expect(mockSocket.emitted.find((e) => e.event === 'updateAvatar')).toBeUndefined();
+    });
+
+    it('should remember avatar removal as an empty marker in localStorage', () => {
+        localStorage.setItem('take5_avatarUrl', DEFAULT_AVATARS[0]);
+        const player = { id: 'player-1', name: 'Player 1', isModerator: true, avatarUrl: DEFAULT_AVATARS[0] };
+        roomState = { ...initialRoomState, currentPlayer: player as any, players: [player] as any };
+
+        renderHook(() => useRoomSocket({
+            socket: mockSocket as any,
+            setRoomState,
+            setInRoom
+        }));
+
+        act(() => {
+            mockSocket.trigger('avatarUpdated', { playerId: 'player-1', avatarUrl: null });
+        });
+
+        expect(localStorage.getItem('take5_avatarUrl')).toBe('');
+    });
+
     it('should not re-send an avatar when the player already has one', () => {
         renderHook(() => useRoomSocket({
             socket: mockSocket as any,
