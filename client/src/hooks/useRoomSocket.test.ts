@@ -119,6 +119,9 @@ describe('useRoomSocket', () => {
         const avatarEmit = mockSocket.emitted.find((e) => e.event === 'updateAvatar');
         expect(avatarEmit).toBeDefined();
         expect(DEFAULT_AVATARS).toContain(avatarEmit!.args[0]);
+        // Persisted immediately (not waiting for the server echo) so other
+        // tabs joining concurrently restore the same pick
+        expect(localStorage.getItem('take5_avatarUrl')).toBe(avatarEmit!.args[0]);
     });
 
     it('should restore the stored avatar instead of assigning a random default', () => {

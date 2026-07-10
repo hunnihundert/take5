@@ -69,10 +69,15 @@ export const useRoomSocket = ({
                     const storedAvatar =
                         localStorage.getItem("take5_avatarUrl");
                     if (storedAvatar === null) {
-                        socket.emit(
-                            "updateAvatar",
-                            getRandomDefaultAvatar(),
+                        const randomAvatar = getRandomDefaultAvatar();
+                        // Persist before emitting so tabs joining
+                        // concurrently restore this pick instead of
+                        // rolling their own (avatar flapping).
+                        localStorage.setItem(
+                            "take5_avatarUrl",
+                            randomAvatar,
                         );
+                        socket.emit("updateAvatar", randomAvatar);
                     } else if (storedAvatar !== "") {
                         socket.emit("updateAvatar", storedAvatar);
                     }
