@@ -8,6 +8,10 @@ interface AvatarPickerModalProps {
   onClose: () => void;
 }
 
+// '/avatars/bison-kopf.svg' -> 'bison kopf'
+const avatarName = (path: string) =>
+  path.split('/').pop()!.replace('.svg', '').replace(/-/g, ' ');
+
 const AvatarPickerModal = ({
   currentAvatarUrl,
   onSelectDefault,
@@ -34,9 +38,10 @@ const AvatarPickerModal = ({
               className={`rounded-full overflow-hidden border-2 aspect-square bg-gray-100 hover:border-primary-500 transition-colors ${
                 currentAvatarUrl === path ? 'border-primary-600' : 'border-transparent'
               }`}
-              title="Select avatar"
+              aria-label={`Select avatar ${avatarName(path)}`}
+              aria-pressed={currentAvatarUrl === path}
             >
-              <img src={path} alt="Default avatar" className="w-full h-full object-cover" />
+              <img src={path} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
