@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { DEFAULT_AVATARS } from '@taking5/shared';
 import { createTestServer, createSocketClient, waitForEvent, waitForReady, TestClient } from '../test/testUtils';
 
 describe('Room Handler Integration', () => {
@@ -607,6 +608,30 @@ describe('Room Handler Integration', () => {
 
       const errorPromise = waitForEvent<any>(client1, 'error');
       client1.emit('updateAvatar', 'javascript:alert(1)');
+      const err = await errorPromise;
+      expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/http/i);
+    });
+
+    it('should accept a whitelisted default avatar path', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const updatedPromise = waitForEvent<any>(client1, 'avatarUpdated');
+      client1.emit('updateAvatar', DEFAULT_AVATARS[0]);
+      const updated = await updatedPromise;
+      expect(updated.avatarUrl).toBe(DEFAULT_AVATARS[0]);
+    });
+
+    it('should reject a relative avatar path that is not a whitelisted default', async () => {
+      const roomCode = `VROOM${testIndex}`;
+      await new Promise<void>((resolve) => {
+        client1.emit('createRoom', 'Player 1', roomCode, () => resolve());
+      });
+
+      const errorPromise = waitForEvent<any>(client1, 'error');
+      client1.emit('updateAvatar', '/avatars/evil.svg');
       const err = await errorPromise;
       expect(typeof err === 'string' ? err : err?.message ?? err).toMatch(/http/i);
     });

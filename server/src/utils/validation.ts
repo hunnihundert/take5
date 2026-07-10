@@ -1,4 +1,6 @@
-import { AVATAR_LIMITS, DECK_LIMITS } from '@taking5/shared';
+import { AVATAR_LIMITS, DECK_LIMITS, DEFAULT_AVATARS } from '@taking5/shared';
+
+const DEFAULT_AVATAR_SET = new Set<string>(DEFAULT_AVATARS);
 
 export const CAPS = {
   maxRooms: 500,
@@ -28,10 +30,13 @@ export function isValidString(v: unknown, min: number, max: number): v is string
   return typeof v === 'string' && v.length >= min && v.length <= max;
 }
 
-// Avatars come in two shapes: a link to an externally hosted image, or the image
-// itself inlined as a base64 data URL from the avatar editor. Each gets its own cap.
+// Avatars come in three shapes: a built-in default shipped with the client, a link
+// to an externally hosted image, or the image itself inlined as a base64 data URL
+// from the avatar editor. Defaults are whitelisted by exact path; the others get caps.
 export function validateAvatarUrl(v: unknown): { valid: true } | { valid: false; error: string } {
   if (typeof v !== 'string' || v.length === 0) return { valid: false, error: 'Avatar URL must be a non-empty string' };
+
+  if (DEFAULT_AVATAR_SET.has(v)) return { valid: true };
 
   if (v.startsWith('data:')) {
     if (!AVATAR_LIMITS.allowedDataUrlPrefixes.some((prefix) => v.startsWith(prefix))) {

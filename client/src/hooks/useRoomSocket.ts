@@ -1,6 +1,12 @@
 import { useCallback, useEffect } from "react";
 import { Socket } from "socket.io-client";
-import { Player, RoomState, Story, DEFAULT_CARD_VALUES } from "../types";
+import {
+    Player,
+    RoomState,
+    Story,
+    DEFAULT_CARD_VALUES,
+    getRandomDefaultAvatar,
+} from "../types";
 
 interface UseRoomSocketProps {
     socket: Socket | null;
@@ -54,13 +60,16 @@ export const useRoomSocket = ({
                 localStorage.setItem("take5_roomCode", roomCode);
                 localStorage.setItem("take5_playerName", player.name);
 
-                // Auto-restore avatar from localStorage if player doesn't have one
+                // Auto-restore avatar from localStorage; first-time users get a
+                // random default. The avatarUpdated echo persists the pick to
+                // localStorage, so it stays the same across sessions.
                 if (!player.avatarUrl) {
                     const storedAvatar =
                         localStorage.getItem("take5_avatarUrl");
-                    if (storedAvatar) {
-                        socket.emit("updateAvatar", storedAvatar);
-                    }
+                    socket.emit(
+                        "updateAvatar",
+                        storedAvatar ?? getRandomDefaultAvatar(),
+                    );
                 }
 
                 // Update URL with room code

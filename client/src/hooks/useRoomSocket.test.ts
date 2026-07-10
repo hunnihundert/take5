@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useRoomSocket } from './useRoomSocket';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MockSocket } from '../test/mockSocket';
-import { RoomState } from '../types';
+import { RoomState, DEFAULT_AVATARS } from '../types';
 
 describe('useRoomSocket', () => {
     let mockSocket: MockSocket;
@@ -30,6 +30,7 @@ describe('useRoomSocket', () => {
     beforeEach(() => {
         mockSocket = new MockSocket('player-1');
         roomState = initialRoomState;
+        localStorage.clear();
         vi.clearAllMocks();
         // Mock window.history.pushState
         vi.stubGlobal('history', { pushState: vi.fn() });
@@ -93,6 +94,82 @@ describe('useRoomSocket', () => {
 
         expect(roomState.players).toHaveLength(2);
         expect(roomState.players[1]).toEqual(newPlayer);
+    });
+
+    it('should assign a random default avatar when the player has none and none is stored', () => {
+        renderHook(() => useRoomSocket({
+            socket: mockSocket as any,
+            setRoomState,
+            setInRoom
+        }));
+
+        const player = { id: 'player-1', name: 'Player 1', isModerator: true, avatarUrl: null };
+
+        act(() => {
+            mockSocket.trigger('roomJoined', {
+                roomCode: 'ABCD',
+                player,
+                players: [player],
+                stories: [],
+                activeStoryId: null,
+                jiraConnected: false
+            });
+        });
+
+        const avatarEmit = mockSocket.emitted.find((e) => e.event === 'updateAvatar');
+        expect(avatarEmit).toBeDefined();
+        expect(DEFAULT_AVATARS).toContain(avatarEmit!.args[0]);
+    });
+
+    it('should restore the stored avatar instead of assigning a random default', () => {
+        const storedAvatar = 'data:image/png;base64,AAA';
+        localStorage.setItem('take5_avatarUrl', storedAvatar);
+
+        renderHook(() => useRoomSocket({
+            socket: mockSocket as any,
+            setRoomState,
+            setInRoom
+        }));
+
+        const player = { id: 'player-1', name: 'Player 1', isModerator: true, avatarUrl: null };
+
+        act(() => {
+            mockSocket.trigger('roomJoined', {
+                roomCode: 'ABCD',
+                player,
+                players: [player],
+                stories: [],
+                activeStoryId: null,
+                jiraConnected: false
+            });
+        });
+
+        const avatarEmit = mockSocket.emitted.find((e) => e.event === 'updateAvatar');
+        expect(avatarEmit).toBeDefined();
+        expect(avatarEmit!.args[0]).toBe(storedAvatar);
+    });
+
+    it('should not re-send an avatar when the player already has one', () => {
+        renderHook(() => useRoomSocket({
+            socket: mockSocket as any,
+            setRoomState,
+            setInRoom
+        }));
+
+        const player = { id: 'player-1', name: 'Player 1', isModerator: true, avatarUrl: DEFAULT_AVATARS[0] };
+
+        act(() => {
+            mockSocket.trigger('roomJoined', {
+                roomCode: 'ABCD',
+                player,
+                players: [player],
+                stories: [],
+                activeStoryId: null,
+                jiraConnected: false
+            });
+        });
+
+        expect(mockSocket.emitted.find((e) => e.event === 'updateAvatar')).toBeUndefined();
     });
 
     it('should emit createRoom', () => {
