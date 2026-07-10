@@ -215,7 +215,7 @@ export const useRoomSocket = ({
                 avatarUrl,
             }: {
                 playerId: string;
-                avatarUrl: string;
+                avatarUrl: string | null;
             }) => {
                 setRoomState((prev: RoomState) => {
                     const updatedPlayers = prev.players.map((p: Player) =>
